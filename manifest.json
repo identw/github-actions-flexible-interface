@@ -1,0 +1,30 @@
+{
+    "manifest_version": 3,
+    "name": "Github Actions Flexible Interface",
+    "author": "Dmitry Sergeev",
+    "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
+    "version": "0.1",
+    "description": "Base Level Extension",
+    "action": {
+      "default_popup": "hello.html",
+      "default_icon": "hello_extensions.png"
+    },
+    "permissions": [
+        "storage"
+    ],
+    "host_permissions": [
+        "https://github.com/**/actions/",
+        "https://github.com/**/acitons/**/*"
+    ],
+    "content_scripts": [
+        {
+            "matches": [
+                "*://*.github.com/*/actions",
+                "*://*.github.com/*/actions/*"
+            ],
+            "js": [
+                "main.js"
+            ]
+        }
+    ]
+  }

@@ -1,0 +1,27 @@
+{
+    "manifest_version": 2,
+    "name": "Github Actions Flexible Interface",
+    "author": "Dmitry Sergeev",
+    "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
+    "version": "v0.0.1",
+    "description": "TODO",
+    "permissions": [
+      "*://*.github.com/*",
+      "storage"
+    ],
+    "content_scripts": [
+      {
+        "matches": [
+          "*://*.github.com/*"
+        ],
+        "js": [
+          "main.js"
+        ]
+      }
+    ],
+    "browser_specific_settings": {
+      "gecko": {
+        "id": "github-actions-flexible-interface"
+      }
+    }
+  }
