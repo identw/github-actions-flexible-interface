@@ -10,38 +10,14 @@ let actionListHtml = document.querySelector(selectorActions);
     // allWorkflowsLi.children[0].style.display = "inline";
     allWorkflowsUl.children[1].after(editButtonIcon());
 
-    // добавляем папку
-    let li = document.createElement('li');
-    // выставляю такие-же аттрибуты как в gtihub
-    li.setAttribute('tabindex', -1);
-    li.setAttribute('data-test-selector', 'workflow-rendered');
-    li.setAttribute('data-view-component', true);
-    // выставляю свои аттрибуты
-    li.setAttribute('data-ghflexible-type', 'folder');
-    li.setAttribute('data-ghflexible-folder-open', 'false');
-    // ActionList-item - класс из gtihub, GHflexible-dir - свой класс
-    li.setAttribute('class', 'ActionList-item GHflexible-dir');
-
-
-    let span = document.createElement('span');
-    span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
-    span.innerText = "test";
-
-    let folderIcon = folderOpenIcon();
-    folderIcon.onmousedown = function(event) {
-        event.stopPropagation();
-        folderActionClick(this.parentElement);
-    }
-
-    let ul = document.createElement('ul')
-    ul.setAttribute('data-ghflexible-folder-list', true);
-
-
-    li.appendChild(folderIcon);
-    li.appendChild(span);
-    li.appendChild(ul);
+    let folderProd = folderCreate("prod");
+    let folderStand = folderCreate("stand");
+    let folderOther = folderCreate("other");
+    actionListHtml.prepend(folderOther);
+    actionListHtml.prepend(folderStand);
+    actionListHtml.prepend(folderProd);
     
-    actionListHtml.prepend(li);
+    
 
 
 
@@ -78,6 +54,7 @@ let actionListHtml = document.querySelector(selectorActions);
                 let name = li.children[0].children[0].innerText;
                 li.setAttribute('data-ghflexible-name', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
+                li.setAttribute('data-ghflexible-element-indent', '0');
             }
 
             if (!li.classList.contains('GHflexible-dropable')) {
@@ -90,8 +67,20 @@ let actionListHtml = document.querySelector(selectorActions);
             };
 
             let saveLiStyle = Object.assign({}, li.style);
+
+            li.oncontextmenu = function(event) {
+                event.stopPropagation();
+                event.preventDefault()
+                console.log('##### ONCONTEXTMENU ###');
+            }
+
             li.onmousedown = function(event) {
                 event.stopPropagation();
+                event.preventDefault();
+
+                if (event.which === 3) {
+                    return;
+                }
 
                 let actionListHtml = document.querySelector(selectorActions);
                 let indexLi = indexInActions(actionListHtml, li.getAttribute('data-ghflexible-name'));
@@ -140,43 +129,54 @@ let actionListHtml = document.querySelector(selectorActions);
                     if (currentDroppable != droppableBelow) {
                         if (currentDroppable) {
                             // логика обработки процесса "вылета" из GHflexible-dropable (удаляем подсветку)
-                            console.log("### OUT TO ###");
                         }
                         currentDroppable = droppableBelow;
                         if (currentDroppable) {
                             // логика обработки процесса, когда мы "влетаем" в элемент GHflexible-dropable
-                            console.log("### IN TO ###");
                         }
                     }
                 }
                 
                 document.addEventListener('mousemove', onMouseMove);
-                
-                li.onmouseup = function() {
-                    console.log('### PUT ###');
 
+                li.onmouseup = function() {
                     document.removeEventListener('mousemove', onMouseMove);
                     li.onmouseup = null;
 
                     // возвращаем старый стиль
                     li.style = Object.assign({}, saveLiStyle);
+                    if (currentDroppable) {
+                        if (checkFolder(currentDroppable)) {
+                            currentDroppable.children[2].appendChild(li);
+                            folderReset(currentDroppable);
 
-                    if (currentDroppable && currentDroppable.classList.contains('GHflexible-dir')) {
-                        currentDroppable.children[2].appendChild(li);
-                        folderActionNewElement(currentDroppable);
+                            let indents = countIndents(li);
+                            console.log(`#### PUT AFTER FOLDER: ${indents} ######`);
+                            setIndents(li, indents);
 
-                    } else if (currentDroppable && currentDroppable.classList.contains('GHflexible-workflow')) {
-                        currentDroppable.after(li);
+                        } else if (checkWorkflow(currentDroppable)) {
+                           
+                            currentDroppable.after(li);
+                            let indents = countIndents(li);
+                            console.log(`#### PUT AFTER WORKFLOW: ${indents} ######`);
+                            setIndents(li, indents);
+                        } else {
+                            console.log('#### IS ???? ####');
+                            console.log(currentDroppable);
+                        }
 
-                    } else {
+                     } else {
+                        console.log(`#### PUT IN ROOT FOLDER ######`);
                         if (indexLi == 0) {
                             actionListHtml.prepend(li);
-                        } else {
+                        } else if (indexLi > 0) {
                             actionListHtml.children[indexLi - 1].after(li);
+                        } else {
+                            actionListHtml.appendChild(li);
                         }
                     }
+
                 };
-                
             };
         }
     }
@@ -217,7 +217,6 @@ async function waitClickShowWorkflows() {
     }
 }
 
-
 function indexInActions(actionList, name) {
     for (let i = 0; i < actionList.children.length; i++) {
         let element = actionList.children[i];
@@ -247,21 +246,128 @@ function editButtonIcon() {
     return li;
 }
 
+// indents
+function setIndents(element, indents) {
+    element.setAttribute('data-ghflexible-element-indent', indents.toString());
+    element.style.marginLeft = indents + 'em';
+}
+
+function countIndents(element) {
+    let indents = 0;
+    let saveElement = element;
+
+    while(!checkRootFolder(element)) {
+        element = element.parentElement;
+        if (checkFolder(element)) {
+            indents = indents + 1;
+        }
+    }
+    element = saveElement;
+    return indents;
+}
+
+// checkings object
+
+function checkRootFolder(element) {
+    if (element.getAttribute('data-test-selector') === 'workflows-list') {
+        return true
+    }
+    return false;
+}
+
+
+function checkFolder(element) {
+    if (element.getAttribute('data-ghflexible-type') === 'folder') {
+        return true
+    }
+    return false;
+}
+
+function checkWorkflow(element) {
+    if (element.getAttribute('data-ghflexible-type') === 'workflow') {
+        return true
+    }
+    return false;
+}
+
+function checkFolderParent(element) {
+    let saveElement = element;
+    while(!checkRootFolder(element)) {
+        element = element.parentElement;
+        if (checkFolder(element)) {
+            element = saveElement;
+            return true;
+        }
+    }
+    element = saveElement;
+    return false;
+}
+
+function getNearUlParent(element) {
+    let saveElement = element;
+
+    while(!checkRootFolder(element)) {
+        element = element.parentElement;
+        if (checkFolder(element)) {
+            let returnElement = element.children[2];
+            element = saveElement;
+            return returnElement;
+        }
+    }
+    element = saveElement;
+    return document.querySelector(selectorActions);
+}
 
 // folder
+function folderCreate(name) {
+    // добавляем папку
+    let li = document.createElement('li');
+    // выставляю такие-же аттрибуты как в gtihub
+    li.setAttribute('tabindex', -1);
+    li.setAttribute('data-test-selector', 'workflow-rendered');
+    li.setAttribute('data-view-component', true);
+    // выставляю свои аттрибуты
+    li.setAttribute('data-ghflexible-type', 'folder');
+    li.setAttribute('data-ghflexible-folder-open', 'false');
+    li.setAttribute('data-ghflexible-element-indent', '0');
+    // ActionList-item - класс из gtihub, GHflexible-dir - свой класс
+    li.setAttribute('class', 'ActionList-item GHflexible-dir');
+
+    let span = document.createElement('span');
+    span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
+    span.innerText = name;
+
+    let folderIcon = folderOpenIcon();
+
+    folderIcon.onmousedown = function(event) {
+        event.stopPropagation();
+        folderActionClick(this.parentElement);
+    }
+
+    let ul = document.createElement('ul')
+    ul.setAttribute('data-ghflexible-folder-list', true);
+
+    li.appendChild(folderIcon);
+    li.appendChild(span);
+    li.appendChild(ul);
+    return li;
+}
+
 function folderClosedIcon() {
     const folderIcon = document.createElement("svg");
     folderIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" fill="currentColor" class="bi bi-folder2" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9zM2.5 3a.5.5 0 0 0-.5.5V6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5zM14 7H2v5.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V7z"/></svg>`;
+    folderIcon.firstChild.style.marginRight = '0.1em';
     return folderIcon.firstChild;
 }
 
 function folderOpenIcon() {
     const folderIcon = document.createElement("svg");
     folderIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" fill="currentColor" class="bi bi-folder2-open" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14V3.5zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5V6zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7H1.633z"/></svg>`;
+    folderIcon.firstChild.style.marginRight = '0.1em';
     return folderIcon.firstChild;
 }
 
-function folderActionNewElement(folder) {
+function folderReset(folder) {
     let folderState = folder.getAttribute('data-ghflexible-folder-open');
 
     if (folderState === 'true') {
