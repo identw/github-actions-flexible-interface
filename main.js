@@ -1,10 +1,11 @@
-let selectorActions = 'ul.ActionList.ActionList--subGroup';
-let actionListHtml = document.querySelector(selectorActions);
+const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
+
+let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 // console.log(actionListHtml.children[10].getAttribute('hidden'));
 
 ( async () => {
     await waitClickShowWorkflows();
-    let actionListHtml = document.querySelector(selectorActions);
+    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
     let allWorkflowsUl = document.querySelector('ul.ActionList');
     // allWorkflowsLi.children[0].style.display = "inline";
@@ -23,7 +24,7 @@ let actionListHtml = document.querySelector(selectorActions);
 
     // читаем все доступные workflows
     let workflows = {};
-    actionListHtml = document.querySelector(selectorActions);
+    actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
     for (let i = 0; i < actionListHtml.children.length; i++) {
 
@@ -49,13 +50,22 @@ let actionListHtml = document.querySelector(selectorActions);
             if (li.classList.contains('GHflexible-dir')) {
                 let name = li.children[1].innerText;
                 li.setAttribute('data-ghflexible-name', name);
+                li.children[1].appendChild(renameElement());
             } else {
                 li.classList.add('GHflexible-workflow');
                 let name = li.children[0].children[0].innerText;
                 li.setAttribute('data-ghflexible-name', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
                 li.setAttribute('data-ghflexible-element-indent', '0');
+                li.children[0].children[0].appendChild(renameElement());
+
+                let a = li.children[0];
+                a.onclick = function (event) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                };
             }
+            
 
             if (!li.classList.contains('GHflexible-dropable')) {
                 li.classList.add('GHflexible-dropable');
@@ -82,7 +92,7 @@ let actionListHtml = document.querySelector(selectorActions);
                     return;
                 }
 
-                let actionListHtml = document.querySelector(selectorActions);
+                let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                 let indexLi = indexInActions(actionListHtml, li.getAttribute('data-ghflexible-name'));
                 console.log(`### index: ${indexLi}`);
 
@@ -184,7 +194,7 @@ let actionListHtml = document.querySelector(selectorActions);
 
 
 function searchShowWorkflows() {
-    let actionListHtml = document.querySelector(selectorActions);
+    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     let showWorkflows = false;
     for (let i = 0; i < actionListHtml.children.length; i++) {
         let li = actionListHtml.children[i];
@@ -244,6 +254,42 @@ function editButtonIcon() {
     li.appendChild(div);
     li.setAttribute('class', 'ActionList-sectionDivider');
     return li;
+}
+
+
+function renameElement() {
+    const el = document.createElement('div');
+    el.style.width = '25%';
+    el.style.height = '1em';
+    el.style.marginLeft = '0.1em';
+    el.style.background = 'transparent';
+    // el.style.background = 'black';
+    el.style.cursor = 'text';
+    el.style.display = 'inline-block';
+
+    el.onmousedown = function(event) {
+        event.stopPropagation();
+        event.preventDefault();
+
+        let p = el.parentElement;
+        let text = p.innerText;
+        p.innerText = '';
+        
+        let input = document.createElement('input');
+        input.value = text;
+        input.type = 'text';
+        p.before(input);
+        input.focus();
+        input.select();
+
+        input.onchange = function (event) {
+            text = input.value;
+            input.value = '';
+            p.innerText = text;
+            input.remove();
+        }
+    }
+    return el;
 }
 
 // indents
@@ -315,7 +361,7 @@ function getNearUlParent(element) {
         }
     }
     element = saveElement;
-    return document.querySelector(selectorActions);
+    return document.querySelector(SELECTOR_ACTIONS);
 }
 
 // folder
