@@ -1,4 +1,7 @@
 const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
+const actionList =  document.querySelector(SELECTOR_ACTIONS);
+// document.querySelector('div.PageLayout-columns').style.gridTemplateColumns = 'none';
+
 
 let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 // console.log(actionListHtml.children[10].getAttribute('hidden'));
@@ -19,9 +22,6 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderProd);
     
     
-
-
-
     // читаем все доступные workflows
     let workflows = {};
     actionListHtml = document.querySelector(SELECTOR_ACTIONS);
@@ -57,7 +57,9 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                 li.setAttribute('data-ghflexible-name', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
                 li.setAttribute('data-ghflexible-element-indent', '0');
-                li.children[0].children[0].appendChild(renameElement());
+                li.children[0].style.display = 'inline';
+                li.appendChild(renameElement());
+                
 
                 let a = li.children[0];
                 a.onclick = function (event) {
@@ -174,6 +176,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                             console.log('#### IS ???? ####');
                             console.log(currentDroppable);
                         }
+                        moveActionListBlock();
 
                      } else {
                         console.log(`#### PUT IN ROOT FOLDER ######`);
@@ -184,12 +187,15 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                         } else {
                             actionListHtml.appendChild(li);
                         }
+                        moveActionListBlock();
                     }
 
                 };
             };
         }
     }
+
+    moveActionListBlock();
 })();
 
 
@@ -238,6 +244,15 @@ function indexInActions(actionList, name) {
     }
 }
 
+function getIndexInChildren(parent, element) {
+    for (let i = 0; i < parent.children.length; i++) {
+        let el = parent.children[i];
+        if (element == el) {
+            return i;
+        }
+    }
+}
+
 function editButtonIcon() {
     const li = document.createElement('li');
     const icon = document.createElement('svg');
@@ -259,11 +274,11 @@ function editButtonIcon() {
 
 function renameElement() {
     const el = document.createElement('div');
-    el.style.width = '25%';
+    el.style.width = '3em';
     el.style.height = '1em';
     el.style.marginLeft = '0.1em';
-    el.style.background = 'transparent';
-    // el.style.background = 'black';
+    // el.style.background = 'transparent';
+    el.style.background = 'black';
     el.style.cursor = 'text';
     el.style.display = 'inline-block';
 
@@ -272,21 +287,55 @@ function renameElement() {
         event.preventDefault();
 
         let p = el.parentElement;
-        let text = p.innerText;
-        p.innerText = '';
+        let span = p.children[0].children[0];
+        let text = span.innerText;
+
+        span.innerText = '';
         
         let input = document.createElement('input');
         input.value = text;
         input.type = 'text';
-        p.before(input);
+        span.before(input);
         input.focus();
         input.select();
 
-        input.onchange = function (event) {
+        input.onmousedown = function(event) {
+            event.stopPropagation();
+        }
+
+        function change(event) {
+            event.stopPropagation();
+            event.preventDefault();
+
+            // Аттрибут data-ghflexible-event-lock используется в качестве блокировки
+            //  Выполняется тот евент, который первый взял блокировку
+            if (input.getAttribute('data-ghflexible-event-lock') !== null) {
+                return;
+            }
+            input.setAttribute('data-ghflexible-event-lock', event.type);
+
             text = input.value;
             input.value = '';
-            p.innerText = text;
-            input.remove();
+            span.innerText = text;
+            p.setAttribute('data-ghflexible-rename', text);
+            input.remove(); 
+            moveActionListBlock();
+
+            input.removeAttribute('data-ghflexible-event-lock');
+        }
+
+        input.onblur = function (event) {
+            change(event);
+        }
+        
+        input.onchange = function(event) {
+            change(event);
+        }
+
+        input.onkeypress = function (event) {
+            if (event.key === "Enter") {
+                change(event);
+            }
         }
     }
     return el;
@@ -321,9 +370,15 @@ function checkRootFolder(element) {
     return false;
 }
 
-
 function checkFolder(element) {
     if (element.getAttribute('data-ghflexible-type') === 'folder') {
+        return true
+    }
+    return false;
+}
+
+function checkFolderList(element) {
+    if (element.getAttribute('data-ghflexible-folder-list') === 'true') {
         return true
     }
     return false;
@@ -391,7 +446,7 @@ function folderCreate(name) {
     }
 
     let ul = document.createElement('ul')
-    ul.setAttribute('data-ghflexible-folder-list', true);
+    ul.setAttribute('data-ghflexible-folder-list', 'true');
 
     li.appendChild(folderIcon);
     li.appendChild(span);
@@ -447,4 +502,76 @@ function folderActionOpen(folder) {
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].removeAttribute('hidden');
     }
+    moveActionListBlock();
 }
+
+function folderGetName(folder) {
+    return folder.getAttribute('data-ghflexible-name');
+}
+
+// workflows
+function workflowGetName(workflow) {
+    return workflow.getAttribute('data-ghflexible-name');
+}
+
+
+function moveActionListBlock() {
+
+    let actionList = document.querySelector(SELECTOR_ACTIONS);
+    let maxLetters = 0;
+
+    depthFirstSearch(actionList, function(el) {
+        let indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
+        let name;
+        if (el.classList.contains('GHflexible-dir')) {
+            name = el.children[1].innerText;
+        } else {
+            name = el.children[0].children[0].innerText;
+        }
+
+        let length = name.length + indents;
+        console.log(`${length}, ${maxLetters}`);
+
+        if (length > maxLetters) {
+            maxLetters = length
+        }
+    });
+
+    const block = document.getElementsByClassName('PageLayout')[0];
+    let px = (maxLetters * 10 + 42) + 'px';
+    block.style.setProperty('--Layout-pane-width', px);
+}
+
+function depthFirstSearch(element, callback) {
+    if (checkRootFolder(element)) {
+        console.log("### IS ROOT ###");
+        for (let i = 0; i < element.children.length; i++) {
+            depthFirstSearch(element.children[i], callback);
+        }
+    }
+
+    if (checkFolder(element)) {
+        console.log(`### IS FOLDER: ${folderGetName(element)}`);
+        callback(element);
+        depthFirstSearch(element.children[2], callback);
+    }
+
+    if (checkFolderList(element)) {
+        console.log(`### IS FOLDER LIST: ${folderGetName(element.parentElement)}`);
+        if (element.children.length > 0) {
+            depthFirstSearch(element.children[0], callback);
+        }
+    }
+
+    if (checkWorkflow(element)) {
+        console.log(`### IS WORKFLOW: ${workflowGetName(element)}`);
+        callback(element);
+
+        let index = getIndexInChildren(element.parentElement, element);
+        let length = element.parentElement.children.length;
+        if (index + 1 < length && !checkRootFolder(element.parentElement)) {
+            depthFirstSearch(element.parentElement.children[index + 1], callback);
+        }
+    }
+}
+
