@@ -12,7 +12,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
     let allWorkflowsUl = document.querySelector('ul.ActionList');
     // allWorkflowsLi.children[0].style.display = "inline";
-    allWorkflowsUl.children[1].after(editButtonIcon());
+    allWorkflowsUl.children[1].after(globalEditButton());
 
     let folderProd = folderCreate("prod");
     let folderStand = folderCreate("stand");
@@ -50,7 +50,6 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
             if (li.classList.contains('GHflexible-dir')) {
                 let name = li.children[1].innerText;
                 li.setAttribute('data-ghflexible-name', name);
-                li.children[1].appendChild(renameElement());
             } else {
                 li.classList.add('GHflexible-workflow');
                 let name = li.children[0].children[0].innerText;
@@ -59,13 +58,6 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                 li.setAttribute('data-ghflexible-element-indent', '0');
                 li.children[0].style.display = 'inline';
                 li.appendChild(renameElement());
-                
-
-                let a = li.children[0];
-                a.onclick = function (event) {
-                    event.preventDefault();
-                    event.stopPropagation();
-                };
             }
             
 
@@ -159,7 +151,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                     li.style = Object.assign({}, saveLiStyle);
                     if (currentDroppable) {
                         if (checkFolder(currentDroppable)) {
-                            currentDroppable.children[2].appendChild(li);
+                            currentDroppable.children[3].appendChild(li);
                             folderReset(currentDroppable);
 
                             let indents = countIndents(li);
@@ -253,18 +245,15 @@ function getIndexInChildren(parent, element) {
     }
 }
 
-function editButtonIcon() {
+function globalEditButton() {
     const li = document.createElement('li');
-    const icon = document.createElement('svg');
-    icon.innerHTML = `<svg fill="#000000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15px" height="15px" viewBox="0 0 494.936 494.936"  xml:space="preserve"><g><g><path d="M389.844,182.85c-6.743,0-12.21,5.467-12.21,12.21v222.968c0,23.562-19.174,42.735-42.736,42.735H67.157c-23.562,0-42.736-19.174-42.736-42.735V150.285c0-23.562,19.174-42.735,42.736-42.735h267.741c6.743,0,12.21-5.467,12.21-12.21s-5.467-12.21-12.21-12.21H67.157C30.126,83.13,0,113.255,0,150.285v267.743c0,37.029,30.126,67.155,67.157,67.155h267.741c37.03,0,67.156-30.126,67.156-67.155V195.061C402.054,188.318,396.587,182.85,389.844,182.85z"/><path d="M483.876,20.791c-14.72-14.72-38.669-14.714-53.377,0L221.352,229.944c-0.28,0.28-3.434,3.559-4.251,5.396l-28.963,65.069c-2.057,4.619-1.056,10.027,2.521,13.6c2.337,2.336,5.461,3.576,8.639,3.576c1.675,0,3.362-0.346,4.96-1.057l65.07-28.963c1.83-0.815,5.114-3.97,5.396-4.25L483.876,74.169c7.131-7.131,11.06-16.61,11.06-26.692C494.936,37.396,491.007,27.915,483.876,20.791z M466.61,56.897L257.457,266.05c-0.035,0.036-0.055,0.078-0.089,0.107l-33.989,15.131L238.51,247.3c0.03-0.036,0.071-0.055,0.107-0.09L447.765,38.058c5.038-5.039,13.819-5.033,18.846,0.005c2.518,2.51,3.905,5.855,3.905,9.414C470.516,51.036,469.127,54.38,466.61,56.897z"/></g></g></svg>`;
-    ;
-    
+    const icon = editButtonIcon();
     const div = document.createElement('div');
     div.style.marginLeft = 'auto';
 
     const divIco = document.createElement('div');
 
-    divIco.appendChild(icon.firstChild);
+    divIco.appendChild(icon);
     div.appendChild(divIco);
     li.appendChild(div);
     li.setAttribute('class', 'ActionList-sectionDivider');
@@ -272,13 +261,21 @@ function editButtonIcon() {
 }
 
 
+function editButtonIcon() {
+    const icon = document.createElement('svg');
+    icon.innerHTML = `<svg fill="#000000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15px" height="15px" viewBox="0 0 494.936 494.936"  xml:space="preserve"><g><g><path d="M389.844,182.85c-6.743,0-12.21,5.467-12.21,12.21v222.968c0,23.562-19.174,42.735-42.736,42.735H67.157c-23.562,0-42.736-19.174-42.736-42.735V150.285c0-23.562,19.174-42.735,42.736-42.735h267.741c6.743,0,12.21-5.467,12.21-12.21s-5.467-12.21-12.21-12.21H67.157C30.126,83.13,0,113.255,0,150.285v267.743c0,37.029,30.126,67.155,67.157,67.155h267.741c37.03,0,67.156-30.126,67.156-67.155V195.061C402.054,188.318,396.587,182.85,389.844,182.85z"/><path d="M483.876,20.791c-14.72-14.72-38.669-14.714-53.377,0L221.352,229.944c-0.28,0.28-3.434,3.559-4.251,5.396l-28.963,65.069c-2.057,4.619-1.056,10.027,2.521,13.6c2.337,2.336,5.461,3.576,8.639,3.576c1.675,0,3.362-0.346,4.96-1.057l65.07-28.963c1.83-0.815,5.114-3.97,5.396-4.25L483.876,74.169c7.131-7.131,11.06-16.61,11.06-26.692C494.936,37.396,491.007,27.915,483.876,20.791z M466.61,56.897L257.457,266.05c-0.035,0.036-0.055,0.078-0.089,0.107l-33.989,15.131L238.51,247.3c0.03-0.036,0.071-0.055,0.107-0.09L447.765,38.058c5.038-5.039,13.819-5.033,18.846,0.005c2.518,2.51,3.905,5.855,3.905,9.414C470.516,51.036,469.127,54.38,466.61,56.897z"/></g></g></svg>`;
+    ;
+    return icon.firstChild;
+}
+
+
 function renameElement() {
-    const el = document.createElement('div');
-    el.style.width = '3em';
-    el.style.height = '1em';
-    el.style.marginLeft = '0.1em';
+    let el = editButtonIcon();
+    // el.style.width = 'em';
+    // el.style.height = '1em';
+    el.style.marginLeft = '0em';
     // el.style.background = 'transparent';
-    el.style.background = 'black';
+    // el.style.background = 'black';
     el.style.cursor = 'text';
     el.style.display = 'inline-block';
 
@@ -287,9 +284,14 @@ function renameElement() {
         event.preventDefault();
 
         let p = el.parentElement;
-        let span = p.children[0].children[0];
-        let text = span.innerText;
-
+        let text, span;
+        if (checkWorkflow(p)) {
+            span = p.children[0].children[0];
+        }
+        if (checkFolder(p)) {
+            span = p.children[1];
+        }
+        text = span.innerText;
         span.innerText = '';
         
         let input = document.createElement('input');
@@ -410,7 +412,7 @@ function getNearUlParent(element) {
     while(!checkRootFolder(element)) {
         element = element.parentElement;
         if (checkFolder(element)) {
-            let returnElement = element.children[2];
+            let returnElement = element.children[3];
             element = saveElement;
             return returnElement;
         }
@@ -437,6 +439,7 @@ function folderCreate(name) {
     let span = document.createElement('span');
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
     span.innerText = name;
+    span.style.marginRight = '0.8em';
 
     let folderIcon = folderOpenIcon();
 
@@ -450,7 +453,9 @@ function folderCreate(name) {
 
     li.appendChild(folderIcon);
     li.appendChild(span);
+    li.appendChild(renameElement());
     li.appendChild(ul);
+    
     return li;
 }
 
@@ -490,7 +495,7 @@ function folderActionClick(folder) {
 
 function folderActionClose(folder) {
     folder.setAttribute('data-ghflexible-folder-open', 'false');
-    let ul = folder.children[2];
+    let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].setAttribute('hidden', '');
     }
@@ -498,7 +503,7 @@ function folderActionClose(folder) {
 
 function folderActionOpen(folder) {
     folder.setAttribute('data-ghflexible-folder-open', 'true');
-    let ul = folder.children[2];
+    let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].removeAttribute('hidden');
     }
@@ -553,7 +558,7 @@ function depthFirstSearch(element, callback) {
     if (checkFolder(element)) {
         console.log(`### IS FOLDER: ${folderGetName(element)}`);
         callback(element);
-        depthFirstSearch(element.children[2], callback);
+        depthFirstSearch(element.children[3], callback);
     }
 
     if (checkFolderList(element)) {
