@@ -1,6 +1,7 @@
 const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
 const actionList =  document.querySelector(SELECTOR_ACTIONS);
 // document.querySelector('div.PageLayout-columns').style.gridTemplateColumns = 'none';
+let EDITABLE = false;
 
 
 let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
@@ -22,8 +23,6 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderProd);
 
     initWorkflowsList();
-    enableEditElements();
-    moveActionListBlock();
 })();
 
 function initWorkflowsList() {
@@ -47,11 +46,30 @@ function initWorkflowsList() {
             }
         }
     }
+    disaableEditElements();
+    moveActionListBlock();
 
+}
+
+function disaableEditElements() {
+    let actionList = document.querySelector(SELECTOR_ACTIONS);
+    EDITABLE = false;
+    depthFirstSearch(actionList, function(el) {
+        el.ondragstart = null;
+        el.oncontextmenu = null;
+        el.onmousedown = null;
+        if (checkFolder(el)) {
+            el.children[2].setAttribute('hidden', '');
+        }
+        if (checkWorkflow(el)) {
+            el.children[1].setAttribute('hidden', '');
+        }
+    });
 }
 
 function enableEditElements() {
     let actionList = document.querySelector(SELECTOR_ACTIONS);
+    EDITABLE = true;
 
     depthFirstSearch(actionList, function(el) {
             // Отключаем браузерный drag
@@ -59,6 +77,21 @@ function enableEditElements() {
 
             let indents = countIndents(li);
             setIndents(li, indents);
+
+            if (checkFolder(el)) {
+                el.children[2].onmousedown = null;
+                el.children[2].removeAttribute('hidden');
+                el.children[2].onmousedown = function (event) {
+                    renameButton(el.children[2], event);
+                }
+            }
+            if (checkWorkflow(el)) {
+                el.children[1].onmousedown = null;
+                el.children[1].removeAttribute('hidden');
+                el.children[1].onmousedown = function (event) {
+                    renameButton(el.children[1], event);
+                }
+            }
 
             li.ondragstart = function () {
                 return false;
@@ -251,7 +284,19 @@ function globalButtons() {
     crFolderIcon.style.width = "20px";
     crFolderIcon.style.height = "20px";
 
+    editIcon.onclick = function (event) {
+        if (EDITABLE) {
+            disaableEditElements();
+            moveActionListBlock();
+        } else {
+            enableEditElements();
+            moveActionListBlock();
+
+        }
+    }
+
     crFolderIcon.onclick = function(event) {
+        enableEditElements();
         let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
         let folder = folderCreate("");
         actionListHtml.prepend(folder);
@@ -362,74 +407,78 @@ function renameElement() {
     el.style.cursor = 'text';
     el.style.display = 'inline-block';
 
-    el.onmousedown = function(event) {
-        event.stopPropagation();
-        event.preventDefault();
-
-        let p = el.parentElement;
-        let text, span;
-        if (checkWorkflow(p)) {
-            span = p.children[0].children[0];
-        }
-        if (checkFolder(p)) {
-            span = p.children[1];
-        }
-        text = span.innerText;
-        span.innerText = '';
-        
-        let input = document.createElement('input');
-        input.value = text;
-        input.type = 'text';
-        span.before(input);
-        input.focus();
-        input.select();
-
-        input.onmousedown = function(event) {
-            event.stopPropagation();
-        }
-
-        function change(event) {
-            event.stopPropagation();
-            event.preventDefault();
-            
-            if (!input) {
-                return;
-            }
-
-            // Аттрибут data-ghflexible-event-lock используется в качестве блокировки
-            if (input.getAttribute('data-ghflexible-event-lock') !== null) {
-                return;
-            }
-            // ставим блокировку
-            input.setAttribute('data-ghflexible-event-lock', event.type);
-
-            text = input.value;
-            input.value = '';
-            span.innerText = text;
-            p.setAttribute('data-ghflexible-rename', text);
-            moveActionListBlock();
-
-            // снимаем блокировку и удаляем элемент
-            input.remove(); 
-            input.removeAttribute('data-ghflexible-event-lock');
-            input = null;
-        }
-
-        input.onblur = function (event) {
-            change(event);
-        }
-        
-        input.onchange =    function(event) {
-            change(event);
-        }
-
-        input.onkeypress = function (event) {
-            if (event.key === "Enter") {
-                change(event);
-            }
-        }
+    el.onmousedown = function (event) {
+        renameButton(el, event);
     }
     return el;
+}
+
+function renameButton(el, event) {
+    event.stopPropagation();
+    event.preventDefault();
+
+    let p = el.parentElement;
+    let text, span;
+    if (checkWorkflow(p)) {
+        span = p.children[0].children[0];
+    }
+    if (checkFolder(p)) {
+        span = p.children[1];
+    }
+    text = span.innerText;
+    span.innerText = '';
+    
+    let input = document.createElement('input');
+    input.value = text;
+    input.type = 'text';
+    span.before(input);
+    input.focus();
+    input.select();
+
+    input.onmousedown = function(event) {
+        event.stopPropagation();
+    }
+
+    function change(event) {
+        event.stopPropagation();
+        event.preventDefault();
+        
+        if (!input) {
+            return;
+        }
+
+        // Аттрибут data-ghflexible-event-lock используется в качестве блокировки
+        if (input.getAttribute('data-ghflexible-event-lock') !== null) {
+            return;
+        }
+        // ставим блокировку
+        input.setAttribute('data-ghflexible-event-lock', event.type);
+
+        text = input.value;
+        input.value = '';
+        span.innerText = text;
+        p.setAttribute('data-ghflexible-rename', text);
+        moveActionListBlock();
+
+        // снимаем блокировку и удаляем элемент
+        input.remove(); 
+        input.removeAttribute('data-ghflexible-event-lock');
+        input = null;
+    }
+
+    input.onblur = function (event) {
+        change(event);
+    }
+    
+    input.onchange =    function(event) {
+        change(event);
+    }
+
+    input.onkeypress = function (event) {
+        if (event.key === "Enter") {
+            change(event);
+        }
+    }
 }
 
 // indents
