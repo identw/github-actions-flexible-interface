@@ -255,6 +255,68 @@ function globalButtons() {
     crFolderIcon.style.marginRight = '0.5em';
     crFolderIcon.style.width = "20px";
     crFolderIcon.style.height = "20px";
+
+    crFolderIcon.onclick = function(event) {
+        let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
+        let folder = folderCreate("");
+        actionListHtml.prepend(folder);
+
+        let span = folder.children[1];
+        let text = span.innerText;
+        span.innerText = '';
+        
+        let input = document.createElement('input');
+        input.value = text;
+        input.type = 'text';
+        span.before(input);
+        input.focus();
+        input.select();
+
+        input.onmousedown = function(event) {
+            event.stopPropagation();
+        }
+
+        function change(event) {
+            event.stopPropagation();
+            event.preventDefault();
+            
+            if (!input) {
+                return;
+            }
+
+            // Аттрибут data-ghflexible-event-lock используется в качестве блокировки
+            if (input.getAttribute('data-ghflexible-event-lock') !== null) {
+                return;
+            }
+            // ставим блокировку
+            input.setAttribute('data-ghflexible-event-lock', event.type);
+
+            text = input.value;
+            input.value = '';
+            span.innerText = text;
+            folder.setAttribute('data-ghflexible-rename', text);
+            moveActionListBlock();
+
+            // снимаем блокировку и удаляем элемент
+            input.remove(); 
+            input.removeAttribute('data-ghflexible-event-lock');
+            input = null;
+        }
+
+        input.onblur = function (event) {
+            change(event);
+        }
+        
+        input.onchange = function(event) {
+            change(event);
+        }
+
+        input.onkeypress = function (event) {
+            if (event.key === "Enter") {
+                change(event);
+            }
+        }
+    }
     
 
     const div = document.createElement('div');
@@ -325,29 +387,35 @@ function renameElement() {
         function change(event) {
             event.stopPropagation();
             event.preventDefault();
+            
+            if (!input) {
+                return;
+            }
 
             // Аттрибут data-ghflexible-event-lock используется в качестве блокировки
-            //  Выполняется тот евент, который первый взял блокировку
             if (input.getAttribute('data-ghflexible-event-lock') !== null) {
                 return;
             }
+            // ставим блокировку
             input.setAttribute('data-ghflexible-event-lock', event.type);
 
             text = input.value;
             input.value = '';
             span.innerText = text;
             p.setAttribute('data-ghflexible-rename', text);
-            input.remove(); 
             moveActionListBlock();
 
+            // снимаем блокировку и удаляем элемент
+            input.remove(); 
             input.removeAttribute('data-ghflexible-event-lock');
+            input = null;
         }
 
         input.onblur = function (event) {
             change(event);
         }
         
-        input.onchange = function(event) {
+        input.onchange =    function(event) {
             change(event);
         }
 
@@ -552,7 +620,6 @@ function moveActionListBlock() {
         }
 
         let length = name.length + indents;
-        console.log(`${length}, ${maxLetters}`);
 
         if (length > maxLetters) {
             maxLetters = length
@@ -566,27 +633,27 @@ function moveActionListBlock() {
 
 function depthFirstSearch(element, callback) {
     if (checkRootFolder(element)) {
-        console.log("### IS ROOT ###");
+        // console.log("### IS ROOT ###");
         for (let i = 0; i < element.children.length; i++) {
             depthFirstSearch(element.children[i], callback);
         }
     }
 
     if (checkFolder(element)) {
-        console.log(`### IS FOLDER: ${folderGetName(element)}`);
+        // console.log(`### IS FOLDER: ${folderGetName(element)}`);
         callback(element);
         depthFirstSearch(element.children[3], callback);
     }
 
     if (checkFolderList(element)) {
-        console.log(`### IS FOLDER LIST: ${folderGetName(element.parentElement)}`);
+        // console.log(`### IS FOLDER LIST: ${folderGetName(element.parentElement)}`);
         if (element.children.length > 0) {
             depthFirstSearch(element.children[0], callback);
         }
     }
 
     if (checkWorkflow(element)) {
-        console.log(`### IS WORKFLOW: ${workflowGetName(element)}`);
+        // console.log(`### IS WORKFLOW: ${workflowGetName(element)}`);
         callback(element);
 
         let index = getIndexInChildren(element.parentElement, element);
