@@ -21,11 +21,13 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderStand);
     actionListHtml.prepend(folderProd);
     
-    
-    // читаем все доступные workflows
+    enableEditElements();
+    moveActionListBlock();
+})();
+
+function enableEditElements() {
     let workflows = {};
     actionListHtml = document.querySelector(SELECTOR_ACTIONS);
-
     for (let i = 0; i < actionListHtml.children.length; i++) {
 
         let li = actionListHtml.children[i];
@@ -159,7 +161,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                             setIndents(li, indents);
 
                         } else if (checkWorkflow(currentDroppable)) {
-                           
+                        
                             currentDroppable.after(li);
                             let indents = countIndents(li);
                             console.log(`#### PUT AFTER WORKFLOW: ${indents} ######`);
@@ -170,7 +172,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                         }
                         moveActionListBlock();
 
-                     } else {
+                    } else {
                         console.log(`#### PUT IN ROOT FOLDER ######`);
                         if (indexLi == 0) {
                             actionListHtml.prepend(li);
@@ -186,9 +188,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
             };
         }
     }
-
-    moveActionListBlock();
-})();
+}
 
 
 function searchShowWorkflows() {
@@ -301,6 +301,7 @@ function globalButtons() {
             input.remove(); 
             input.removeAttribute('data-ghflexible-event-lock');
             input = null;
+            enableEditElements();
         }
 
         input.onblur = function (event) {
