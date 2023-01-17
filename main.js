@@ -21,39 +21,17 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderStand);
     actionListHtml.prepend(folderProd);
 
+    initWorkflowsList();
     enableEditElements();
     moveActionListBlock();
 })();
 
-function enableEditElements() {
-    let workflows = {};
-    actionListHtml = document.querySelector(SELECTOR_ACTIONS);
-    for (let i = 0; i < actionListHtml.children.length; i++) {
+function initWorkflowsList() {
+    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
+    for (let i = 0; i < actionListHtml.children.length; i++) {
         let li = actionListHtml.children[i];
         if (li.getAttribute('data-test-selector') != 'workflows-show-more') {
-            // let name = li.children[0].children[0].innerText;
-            // workflows[name] = {
-            //     li: {
-            //         dataItemId: li.getAttribute('data-item-id'),
-            //         class: li.getAttribute('class'),
-            //     },
-            //     a: {
-            //         href: li.children[0].getAttribute('href'),
-            //         class: li.children[0].getAttribute('class'),
-            //     },
-            //     span: {
-            //         class: li.children[0].children[0].getAttribute('class'),
-            //     }
-
-            // }
-
-            
-            if (li.classList.contains('GHflexible-dir')) {
-                let name = li.children[1].innerText;
-                li.setAttribute('data-ghflexible-name', name);
-            } 
-            
             if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
                 li.classList.add('GHflexible-workflow');
                 let name = li.children[0].children[0].innerText;
@@ -63,13 +41,25 @@ function enableEditElements() {
                 li.children[0].style.display = 'inline';
                 li.appendChild(renameElement());
             }
-            
 
             if (!li.classList.contains('GHflexible-dropable')) {
                 li.classList.add('GHflexible-dropable');
             }
+        }
+    }
 
+}
+
+function enableEditElements() {
+    let actionList = document.querySelector(SELECTOR_ACTIONS);
+
+    depthFirstSearch(actionList, function(el) {
             // Отключаем браузерный drag
+            let li = el;
+
+            let indents = countIndents(li);
+            setIndents(li, indents);
+
             li.ondragstart = function () {
                 return false;
             };
@@ -161,7 +151,6 @@ function enableEditElements() {
                             let indents = countIndents(li);
                             console.log(`#### PUT AFTER FOLDER: ${indents} ######`);
                             setIndents(li, indents);
-
                         } else if (checkWorkflow(currentDroppable)) {
                         
                             currentDroppable.after(li);
@@ -185,11 +174,15 @@ function enableEditElements() {
                         }
                         moveActionListBlock();
                     }
+                    if (checkFolder(li)) {
+                        depthFirstSearch(li, function(el) {
+                            setIndents(el, countIndents(el));
+                        });
+                    }
 
                 };
             };
-        }
-    }
+    });
 }
 
 
@@ -278,6 +271,8 @@ function globalButtons() {
             event.stopPropagation();
         }
 
+        let firstNameFlag = true;
+
         function change(event) {
             event.stopPropagation();
             event.preventDefault();
@@ -297,6 +292,12 @@ function globalButtons() {
             input.value = '';
             span.innerText = text;
             folder.setAttribute('data-ghflexible-rename', text);
+
+            if (firstNameFlag) {
+                firstNameFlag = false;
+                folder.setAttribute('data-ghflexible-name', text);
+            }
+
             moveActionListBlock();
 
             // снимаем блокировку и удаляем элемент
@@ -434,7 +435,7 @@ function renameElement() {
 // indents
 function setIndents(element, indents) {
     element.setAttribute('data-ghflexible-element-indent', indents.toString());
-    element.style.marginLeft = indents + 'em';
+    element.style.marginLeft = indents / 2.0 + 'em';
 }
 
 function countIndents(element) {
@@ -519,17 +520,20 @@ function folderCreate(name) {
     li.setAttribute('data-view-component', true);
     // выставляю свои аттрибуты
     li.setAttribute('data-ghflexible-type', 'folder');
+    li.setAttribute('data-ghflexible-name', name);
     li.setAttribute('data-ghflexible-folder-open', 'false');
     li.setAttribute('data-ghflexible-element-indent', '0');
+    
     // ActionList-item - класс из gtihub, GHflexible-dir - свой класс
-    li.setAttribute('class', 'ActionList-item GHflexible-dir');
-
+    li.setAttribute('class', 'ActionList-item GHflexible-dir GHflexible-dropable');
+    
     let span = document.createElement('span');
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
     span.innerText = name;
     span.style.marginRight = '0.8em';
 
     let folderIcon = folderOpenIcon();
+    folderIcon.style.marginLeft = '0.4em';
 
     folderIcon.onmousedown = function(event) {
         event.stopPropagation();
