@@ -20,7 +20,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderOther);
     actionListHtml.prepend(folderStand);
     actionListHtml.prepend(folderProd);
-    
+
     enableEditElements();
     moveActionListBlock();
 })();
@@ -52,7 +52,9 @@ function enableEditElements() {
             if (li.classList.contains('GHflexible-dir')) {
                 let name = li.children[1].innerText;
                 li.setAttribute('data-ghflexible-name', name);
-            } else {
+            } 
+            
+            if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
                 li.classList.add('GHflexible-workflow');
                 let name = li.children[0].children[0].innerText;
                 li.setAttribute('data-ghflexible-name', name);
