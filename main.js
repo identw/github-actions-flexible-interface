@@ -597,8 +597,8 @@ function folderCreate(name) {
     span.innerText = name;
     span.style.marginRight = '0.8em';
 
-    let folderIcon = folderOpenIcon();
-    // folderIcon.style.marginLeft = '0.4em';
+    let folderIcon = folderClosedIcon();
+    folderIcon.style.cursor = 'default';
 
     folderIcon.onmousedown = function(event) {
         event.stopPropagation();
@@ -617,17 +617,18 @@ function folderCreate(name) {
 }
 
 function folderClosedIcon() {
-    const folderIcon = document.createElement("svg");
-    folderIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" fill="currentColor" class="bi bi-folder2" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v7a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 12.5v-9zM2.5 3a.5.5 0 0 0-.5.5V6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5zM14 7H2v5.5a.5.5 0 0 0 .5.5h11a.5.5 0 0 0 .5-.5V7z"/></svg>`;
-    folderIcon.firstChild.style.marginRight = '0.1em';
-    return folderIcon.firstChild;
+    const icon = document.createElement("svg");
+    icon.innerHTML = `<svg width="15px" height="15px" viewBox="0 0 512 512" version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+    <title>folder-outline</title><g id="Page-1" stroke="none" stroke-width="1" fill="none" fill-rule="evenodd"><g id="folder" fill="#000000" transform="translate(42.666667, 85.333333)"><path d="M426.666667,341.333333 L3.55271368e-14,341.333333 L3.55271368e-14,1.42108547e-14 L178.083413,1.42108547e-14 L232.041813,42.6666667 L426.666667,42.6666667 L426.666667,341.333333 Z M42.6666667,298.666667 L384,298.666667 L384,85.3333333 L217.20832,85.3333333 L163.24992,42.6666667 L42.6666667,42.6666667 L42.6666667,298.666667 Z" id="Shape"></path></g></g></svg>`;
+    icon.firstChild.style.marginRight = '0.2em';
+    return icon.firstChild;
 }
 
 function folderOpenIcon() {
-    const folderIcon = document.createElement("svg");
-    folderIcon.innerHTML = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="12" fill="currentColor" class="bi bi-folder2-open" viewBox="0 0 16 16"><path d="M1 3.5A1.5 1.5 0 0 1 2.5 2h2.764c.958 0 1.76.56 2.311 1.184C7.985 3.648 8.48 4 9 4h4.5A1.5 1.5 0 0 1 15 5.5v.64c.57.265.94.876.856 1.546l-.64 5.124A2.5 2.5 0 0 1 12.733 15H3.266a2.5 2.5 0 0 1-2.481-2.19l-.64-5.124A1.5 1.5 0 0 1 1 6.14V3.5zM2 6h12v-.5a.5.5 0 0 0-.5-.5H9c-.964 0-1.71-.629-2.174-1.154C6.374 3.334 5.82 3 5.264 3H2.5a.5.5 0 0 0-.5.5V6zm-.367 1a.5.5 0 0 0-.496.562l.64 5.124A1.5 1.5 0 0 0 3.266 14h9.468a1.5 1.5 0 0 0 1.489-1.314l.64-5.124A.5.5 0 0 0 14.367 7H1.633z"/></svg>`;
-    folderIcon.firstChild.style.marginRight = '0.1em';
-    return folderIcon.firstChild;
+    const icon = document.createElement("svg");
+    icon.innerHTML = `<svg fill="#000000" width="15px" height="15px" viewBox="0 0 512 512" xmlns="http://www.w3.org/2000/svg"><path fill-rule="evenodd" d="M384,128 L384,42.6666667 L232.0416,42.6666667 L178.0832,1.42108547e-14 L-2.13162821e-14,1.42108547e-14 L-2.13162821e-14,341.333333 L60.9376,341.333333 L363.416533,341.333333 L372.583253,341.333333 L437.333333,128 L384,128 Z M42.6666667,253.44 L42.6666667,42.6666667 L163.24992,42.6666667 L217.20832,85.3333333 L341.333333,85.3333333 L341.333333,128 L82.0209067,128 L42.6666667,253.44 Z M340.95808,298.666667 L73.1874133,298.666667 L113.354027,170.666667 L379.79136,170.666667 L340.95808,298.666667 Z" transform="translate(42.667 85.333)"/></svg>`;
+    icon.firstChild.style.marginRight = '0.2em';
+    return icon.firstChild;
 }
 
 function folderReset(folder) {
@@ -648,10 +649,16 @@ function folderActionClick(folder) {
     } else {
         folderActionOpen(folder);
     }
+    moveActionListBlock();
 }
 
 function folderActionClose(folder) {
     folder.setAttribute('data-ghflexible-folder-open', 'false');
+    let saveEventOnmouseDown = folder.children[0].onmousedown;
+    folder.replaceChild(folderClosedIcon(), folder.children[0]);
+    folder.children[0].onmousedown = saveEventOnmouseDown;
+    folder.children[0].style.cursor = 'default';
+
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].setAttribute('hidden', '');
@@ -660,11 +667,15 @@ function folderActionClose(folder) {
 
 function folderActionOpen(folder) {
     folder.setAttribute('data-ghflexible-folder-open', 'true');
+    let saveEventOnmouseDown = folder.children[0].onmousedown;
+    folder.replaceChild(folderOpenIcon(), folder.children[0]);
+    folder.children[0].onmousedown = saveEventOnmouseDown;
+    folder.children[0].style.cursor = 'default';
+
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].removeAttribute('hidden');
     }
-    moveActionListBlock();
 }
 
 function folderGetName(folder) {
