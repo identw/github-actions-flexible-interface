@@ -12,7 +12,6 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
     let allWorkflowsUl = document.querySelector('ul.ActionList');
-    // allWorkflowsLi.children[0].style.display = "inline";
     allWorkflowsUl.children[1].after(globalButtons());
 
     let folderProd = folderCreate("prod");
@@ -33,12 +32,17 @@ function initWorkflowsList() {
         if (li.getAttribute('data-test-selector') != 'workflows-show-more') {
             if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
                 li.classList.add('GHflexible-workflow');
-                let name = li.children[0].children[0].innerText;
+                li.prepend(workflowIcon());
+
+                let name = li.children[1].children[0].innerText;
                 li.setAttribute('data-ghflexible-name', name);
+                li.setAttribute('data-ghflexible-rename', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
                 li.setAttribute('data-ghflexible-element-indent', '0');
-                li.children[0].style.display = 'inline';
+                li.children[1].style.display = 'inline';
+                li.children[1].style.paddingLeft = '0em';
                 li.appendChild(renameElement());
+                
             }
 
             if (!li.classList.contains('GHflexible-dropable')) {
@@ -62,7 +66,7 @@ function disaableEditElements() {
             el.children[2].setAttribute('hidden', '');
         }
         if (checkWorkflow(el)) {
-            el.children[1].setAttribute('hidden', '');
+            el.children[2].setAttribute('hidden', '');
         }
     });
 }
@@ -86,10 +90,10 @@ function enableEditElements() {
                 }
             }
             if (checkWorkflow(el)) {
-                el.children[1].onmousedown = null;
-                el.children[1].removeAttribute('hidden');
-                el.children[1].onmousedown = function (event) {
-                    renameButton(el.children[1], event);
+                el.children[2].onmousedown = null;
+                el.children[2].removeAttribute('hidden');
+                el.children[2].onmousedown = function (event) {
+                    renameButton(el.children[2], event);
                 }
             }
 
@@ -388,9 +392,15 @@ function globalButtons() {
 function editButtonIcon() {
     const icon = document.createElement('svg');
     icon.innerHTML = `<svg fill="#000000" version="1.1" id="Capa_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="15px" height="15px" viewBox="0 0 494.936 494.936"  xml:space="preserve"><g><g><path d="M389.844,182.85c-6.743,0-12.21,5.467-12.21,12.21v222.968c0,23.562-19.174,42.735-42.736,42.735H67.157c-23.562,0-42.736-19.174-42.736-42.735V150.285c0-23.562,19.174-42.735,42.736-42.735h267.741c6.743,0,12.21-5.467,12.21-12.21s-5.467-12.21-12.21-12.21H67.157C30.126,83.13,0,113.255,0,150.285v267.743c0,37.029,30.126,67.155,67.157,67.155h267.741c37.03,0,67.156-30.126,67.156-67.155V195.061C402.054,188.318,396.587,182.85,389.844,182.85z"/><path d="M483.876,20.791c-14.72-14.72-38.669-14.714-53.377,0L221.352,229.944c-0.28,0.28-3.434,3.559-4.251,5.396l-28.963,65.069c-2.057,4.619-1.056,10.027,2.521,13.6c2.337,2.336,5.461,3.576,8.639,3.576c1.675,0,3.362-0.346,4.96-1.057l65.07-28.963c1.83-0.815,5.114-3.97,5.396-4.25L483.876,74.169c7.131-7.131,11.06-16.61,11.06-26.692C494.936,37.396,491.007,27.915,483.876,20.791z M466.61,56.897L257.457,266.05c-0.035,0.036-0.055,0.078-0.089,0.107l-33.989,15.131L238.51,247.3c0.03-0.036,0.071-0.055,0.107-0.09L447.765,38.058c5.038-5.039,13.819-5.033,18.846,0.005c2.518,2.51,3.905,5.855,3.905,9.414C470.516,51.036,469.127,54.38,466.61,56.897z"/></g></g></svg>`;
-    ;
     return icon.firstChild;
 }
+
+function workflowIcon() {
+    const icon = document.createElement('svg');
+    icon.innerHTML = `<svg width="15px" height="15px" viewBox="0 0 1024 1024" class="icon"  version="1.1" xmlns="http://www.w3.org/2000/svg"><path d="M786.358857 809.325714a88.356571 88.356571 0 0 1 176.566857 0 88.283429 88.283429 0 0 1-176.566857 0z m-274.797714 89.234286c-48.64 0-88.210286-39.497143-88.210286-88.064a88.210286 88.210286 0 0 1 176.420572 0c0 48.566857-39.570286 88.064-88.210286 88.064zM512.512 59.538286c48.566857 0 88.137143 39.497143 88.137143 87.917714a88.137143 88.137143 0 0 1-176.201143 0c0-48.493714 39.497143-87.917714 88.064-87.917714zM145.334857 896.731429c-48.64 0-88.210286-39.497143-88.210286-88.137143a88.283429 88.283429 0 0 1 176.493715 0c0 48.64-39.643429 88.137143-88.283429 88.137143zM905.069714 425.691429a29.549714 29.549714 0 0 0-8.265143-20.48 30.793143 30.793143 0 0 0-20.48-8.265143H541.257143V291.181714a147.309714 147.309714 0 0 0 117.906286-144.237714 147.163429 147.163429 0 0 0-294.253715 0c0 71.826286 49.883429 131.510857 118.125715 144.237714-0.146286 0.365714-1.974857 105.691429-1.974858 105.691429H147.675429a28.452571 28.452571 0 0 0-20.48 8.265143 30.134857 30.134857 0 0 0-8.923429 20.48l0.658286 241.590857c-59.245714 9.508571-118.345143 70.656-118.345143 143.725714 0 81.042286 65.974857 147.017143 147.090286 147.017143 81.188571 0 147.163429-65.974857 147.163428-147.017143 0-70.656-53.101714-131.437714-112.128-143.725714V464.969143h300.324572v191.488c0 3.730286 0.877714 7.094857 2.048 10.24a147.017143 147.017143 0 0 0-120.173715 144.237714 147.236571 147.236571 0 0 0 294.253715 0c0-71.899429-52.077714-131.657143-120.539429-144.237714a29.110857 29.110857 0 0 0 1.974857-10.24V464.969143h300.617143v202.24c-64.365714 14.116571-112.054857 73.142857-112.054857 143.725714a147.236571 147.236571 0 0 0 294.253714 0c0-72.996571-57.344-134.656-118.345143-144.530286 0.365714-1.097143 0-240.786286 0-240.786285z" fill="#000000" /></svg>`;
+    return icon.firstChild;
+}
+
 
 function createFolderIcon() {
     const icon = document.createElement('svg');
@@ -402,11 +412,7 @@ function createFolderIcon() {
 
 function renameElement() {
     let el = editButtonIcon();
-    // el.style.width = 'em';
-    // el.style.height = '1em';
     el.style.marginLeft = '0em';
-    // el.style.background = 'transparent';
-    // el.style.background = 'black';
     el.style.cursor = 'text';
     el.style.display = 'inline-block';
 
@@ -424,7 +430,7 @@ function renameButton(el, event) {
     let p = el.parentElement;
     let text, span;
     if (checkWorkflow(p)) {
-        span = p.children[0].children[0];
+        span = p.children[1].children[0];
     }
     if (checkFolder(p)) {
         span = p.children[1];
@@ -473,10 +479,6 @@ function renameButton(el, event) {
         input.remove(); 
         input.removeAttribute('data-ghflexible-event-lock');
         input = null;
-        // if (checkWorkflow(p)) {
-        //     p.children[0].href = p.children[0].getAttribute('data-ghflexible-link');
-        // }
-       
     }
 
     input.onblur = function (event) {
@@ -583,6 +585,7 @@ function folderCreate(name) {
     // выставляю свои аттрибуты
     li.setAttribute('data-ghflexible-type', 'folder');
     li.setAttribute('data-ghflexible-name', name);
+    li.setAttribute('data-ghflexible-rename', name);
     li.setAttribute('data-ghflexible-folder-open', 'false');
     li.setAttribute('data-ghflexible-element-indent', '0');
     
@@ -595,7 +598,7 @@ function folderCreate(name) {
     span.style.marginRight = '0.8em';
 
     let folderIcon = folderOpenIcon();
-    folderIcon.style.marginLeft = '0.4em';
+    // folderIcon.style.marginLeft = '0.4em';
 
     folderIcon.onmousedown = function(event) {
         event.stopPropagation();
@@ -681,22 +684,15 @@ function moveActionListBlock() {
 
     depthFirstSearch(actionList, function(el) {
         let indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
-        let name;
-        if (el.classList.contains('GHflexible-dir')) {
-            name = el.children[1].innerText;
-        } else {
-            name = el.children[0].children[0].innerText;
-        }
-
+        let name = el.getAttribute('data-ghflexible-rename');
         let length = name.length + indents;
 
         if (length > maxLetters) {
             maxLetters = length
         }
     });
-
     const block = document.getElementsByClassName('PageLayout')[0];
-    let px = (maxLetters * 10 + 42) + 'px';
+    let px = (maxLetters * 10 + 56) + 'px';
     block.style.setProperty('--Layout-pane-width', px);
 }
 
