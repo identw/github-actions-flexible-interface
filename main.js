@@ -278,11 +278,14 @@ function globalButtons() {
     const editIcon = editButtonIcon();
     editIcon.style.width = "20px";
     editIcon.style.height = "20px";
+    editIcon.style.cursor = 'pointer';
+
 
     const crFolderIcon = createFolderIcon();
     crFolderIcon.style.marginRight = '0.5em';
     crFolderIcon.style.width = "20px";
     crFolderIcon.style.height = "20px";
+    crFolderIcon.style.cursor = 'pointer';
 
     editIcon.onclick = function (event) {
         if (EDITABLE) {
@@ -408,6 +411,8 @@ function renameElement() {
     el.style.display = 'inline-block';
 
     el.onmousedown = function (event) {
+        event.stopPropagation();
+        event.preventDefault();
         renameButton(el, event);
     }
     return el;
@@ -416,7 +421,6 @@ function renameElement() {
 function renameButton(el, event) {
     event.stopPropagation();
     event.preventDefault();
-
     let p = el.parentElement;
     let text, span;
     if (checkWorkflow(p)) {
@@ -437,6 +441,11 @@ function renameButton(el, event) {
 
     input.onmousedown = function(event) {
         event.stopPropagation();
+    }
+
+    input.onclick = function(event) {
+        event.stopPropagation();
+        event.preventDefault();
     }
 
     function change(event) {
@@ -464,6 +473,10 @@ function renameButton(el, event) {
         input.remove(); 
         input.removeAttribute('data-ghflexible-event-lock');
         input = null;
+        // if (checkWorkflow(p)) {
+        //     p.children[0].href = p.children[0].getAttribute('data-ghflexible-link');
+        // }
+       
     }
 
     input.onblur = function (event) {
