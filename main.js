@@ -2,6 +2,7 @@ const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
 const actionList =  document.querySelector(SELECTOR_ACTIONS);
 // document.querySelector('div.PageLayout-columns').style.gridTemplateColumns = 'none';
 let EDITABLE = false;
+console.log(`RUN ACTIONS AWSOME`);
 
 
 let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
@@ -117,6 +118,10 @@ function enableEditElements() {
                     return;
                 }
 
+                if (checkFolder(li)) {
+                    folderActionClose(li);
+                }
+
                 let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
                 let indexLi = indexInActions(actionListHtml, li.getAttribute('data-ghflexible-name'));
                 console.log(`### index: ${indexLi}`);
@@ -149,7 +154,7 @@ function enableEditElements() {
 
                 function onMouseMove(event) {
                     moveAt(event.pageX, event.pageY);
-                    
+ 
                     // обработка целей куда можно дропать объект
                     li.hidden = true;
                     let elemBelow = document.elementFromPoint(event.clientX, event.clientY);
@@ -739,4 +744,3 @@ function depthFirstSearch(element, callback) {
         }
     }
 }
-
