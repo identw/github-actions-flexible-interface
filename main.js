@@ -113,10 +113,37 @@ function enableEditElements() {
 
             let saveLiStyle = Object.assign({}, li.style);
 
-            li.oncontextmenu = function(event) {
-                event.stopPropagation();
-                event.preventDefault()
-                console.log('##### ONCONTEXTMENU ###');
+            if (checkFolder(li)) {
+                li.oncontextmenu = function(event) {
+                    event.stopPropagation();
+                    event.preventDefault();
+                    console.log('##### ONCONTEXTMENU ###');
+
+                    let div = document.createElement('div');
+                    
+                    div.style.position = 'absolute';
+                    div.style.zIndex = 1000;
+                    document.body.append(div);
+
+                    div.onmouseout = function (event) {
+                        div.remove();
+                        console.log(div);
+                        delete(div);
+                    }
+
+
+                    div.style.width = '10em';
+                    div.style.height = '5em';
+                    div.style.background = '#f6f8fa'; 
+                    div.style.borderStyle  = 'solid';
+                    div.style.borderColor = '#d6d9dc';
+                    div.style.borderWidth = '1px';
+                    div.style.borderRadius = '1em';
+                    
+                    div.style.left = event.clientX + 'px';
+                    div.style.top = event.clientY + 'px';
+
+                }
             }
 
             li.onmousedown = function(event) {
@@ -303,7 +330,7 @@ function enableEditElements() {
                         }
                         let indents = countIndents(li);
                         setIndents(li, indents);
-                        
+
                         li.after(dropableLine);
                         moveActionListBlock();
                     }
