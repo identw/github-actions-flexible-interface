@@ -21,6 +21,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderOther);
     actionListHtml.prepend(folderStand);
     actionListHtml.prepend(folderProd);
+    actionListHtml.prepend(createDropableLine());
 
     
     folderProd.after(createDropableLine());
@@ -181,7 +182,7 @@ function enableEditElements() {
                         afterDropableLine.style.height = '1em';
                     }
                 }
-                
+
                 function onMouseMove(event) {
                     moveAt(event.pageX, event.pageY);
  
@@ -218,13 +219,25 @@ function enableEditElements() {
                             if (checkDropableLine(currentDroppable)) {
                                 currentDroppable.style.height = '1em';
                             }
+
                             if (checkFolder(currentDroppable)) {
                                 setSizeDropableLine(currentDroppable);
                                 currentDroppable.style.backgroundColor = '#d0d7de';
+
+                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                                if (i == 1) {
+                                    currentDroppable.parentElement.children[0].style.height = '1em';
+                                }
                     
                             } 
+                            
                             if (checkWorkflow(currentDroppable)) {
                                 setSizeDropableLine(currentDroppable);
+
+                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                                if (i == 1) {
+                                    currentDroppable.parentElement.children[0].style.height = '1em';
+                                }
                             }
                         }
                     }
@@ -277,7 +290,6 @@ function enableEditElements() {
                         }
 
                         if (checkFolder(currentDroppable.parentElement.parentElement)) {
-                            console.log('### FOLDER RESET ###');
                             folderReset(currentDroppable.parentElement.parentElement);
                         }
 
@@ -289,7 +301,9 @@ function enableEditElements() {
                         } else if (indexLi > 0) {
                             parentLi.children[indexLi - 1].after(li);
                         }
-
+                        let indents = countIndents(li);
+                        setIndents(li, indents);
+                        
                         li.after(dropableLine);
                         moveActionListBlock();
                     }
@@ -389,7 +403,8 @@ function globalButtons() {
         enableEditElements();
         let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
         let folder = folderCreate("");
-        actionListHtml.prepend(folder);
+        actionListHtml.children[0].after(folder);
+        folder.after(createDropableLine());
 
         let span = folder.children[1];
         let text = span.innerText;
@@ -690,6 +705,7 @@ function folderCreate(name) {
 
     let ul = document.createElement('ul')
     ul.setAttribute('data-ghflexible-folder-list', 'true');
+    ul.appendChild(createDropableLine());
 
     li.appendChild(folderIcon);
     li.appendChild(span);
