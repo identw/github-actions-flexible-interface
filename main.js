@@ -21,7 +21,7 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     actionListHtml.prepend(folderOther);
     actionListHtml.prepend(folderStand);
     actionListHtml.prepend(folderProd);
-    actionListHtml.prepend(createDropableLine());
+    actionListHtml.prepend(createDropableLine({first: true}));
 
     
     folderProd.after(createDropableLine());
@@ -157,6 +157,11 @@ function enableEditElements() {
                 if (checkFolder(li)) {
                     folderActionClose(li);
                 }
+
+                // при перескавиваниях расширяем все первые элементы, для того чтобы на них можно было навестись
+                document.querySelectorAll('li.GHflexible-first-dropable').forEach((el) => {
+                    el.style.height = '0.5em';
+                });
                 
                 // Запиоминаем родителя до переноса, и под какаим индексом были в нем. Чтобы вернуть назад если перенос был не в положенное место
                 let parentLi = li.parentElement;
@@ -190,23 +195,32 @@ function enableEditElements() {
 
                 let currentDroppable = null;
 
-                function setZeroSizeDropableLine(dropable) {
-                    let index = getIndexInChildren(dropable.parentElement, dropable);
-                    afterDropableLine = dropable.parentElement.children[index + 1];
-                    beforeDropableLine = dropable.parentElement.children[index - 1];
-                    if (checkDropableLine(afterDropableLine)) {
-                        afterDropableLine.style.height = '0em';
-                    }
-                    if (checkDropableLine(beforeDropableLine)) {
-                        beforeDropableLine.style.height = '0em';
+                function decreaseLine(d) {
+                    decreaseLineBefore(d);
+                    decreaseLineAfter(d);
+                }
+
+                function decreaseLineBefore(d) {
+                    let i = getIndexInChildren(d.parentElement, d);
+                    let dline = d.parentElement.children[i - 1];
+                    if (checkDropableLine(dline)) {
+                        dline.style.height = '0em';
                     }
                 }
 
-                function setSizeDropableLine(dropable) {
-                    let index = getIndexInChildren(dropable.parentElement, dropable);
-                    afterDropableLine = dropable.parentElement.children[index + 1];
-                    if (checkDropableLine(afterDropableLine)) {
-                        afterDropableLine.style.height = '1em';
+                function decreaseLineAfter(d) {
+                    let i = getIndexInChildren(d.parentElement, d);
+                    let dline = d.parentElement.children[i + 1];
+                    if (checkDropableLine(dline)) {
+                        dline.style.height = '0em';
+                    }
+                }
+
+                function increaseLine(d) {
+                    let i = getIndexInChildren(d.parentElement, d);
+                    dline = d.parentElement.children[i + 1];
+                    if (checkDropableLine(dline)) {
+                        dline.style.height = '1em';
                     }
                 }
 
@@ -219,7 +233,6 @@ function enableEditElements() {
                     li.hidden = false;
 
                     if (!elemBelow) return;
-                    // console.log(elemBelow);
 
                     // потенциальные цели переноса помечены классом droppable (может быть и другая логика)
                     let droppableBelow = elemBelow.closest('.GHflexible-dropable');
@@ -228,15 +241,29 @@ function enableEditElements() {
                         if (currentDroppable) {
                             // логика обработки процесса "вылета" из GHflexible-dropable (удаляем подсветку)
                             if (checkFolder(currentDroppable)) {
-                                setZeroSizeDropableLine(currentDroppable);
+                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                                if (i == 1) {
+                                    decreaseLineAfter(currentDroppable);
+                                } else {
+                                    decreaseLine(currentDroppable)
+                                }
                                 currentDroppable.style.backgroundColor = 'transparent';
                             }
                             if (checkWorkflow(currentDroppable)) {
-                                setZeroSizeDropableLine(currentDroppable);
+                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                                if (i == 1) {
+                                    decreaseLineAfter(currentDroppable);
+                                } else {
+                                    decreaseLine(currentDroppable)
+                                }
                             }
                             if (checkDropableLine(currentDroppable)) {
-                                currentDroppable.style.background = 'transparent';
-                                currentDroppable.style.height = '0em';
+                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                                if (i == 0) {
+                                    currentDroppable.style.height = '0.5em';
+                                } else {
+                                    currentDroppable.style.height = '0em';
+                                }
                             }
                         }
                         currentDroppable = droppableBelow;
@@ -244,27 +271,16 @@ function enableEditElements() {
                         // логика обработки процесса, когда мы "влетаем" в элемент GHflexible-dropable
                         if (currentDroppable) {
                             if (checkDropableLine(currentDroppable)) {
-                                currentDroppable.style.height = '1em';
+                                currentDroppable.style.height = '1.5em';
                             }
 
                             if (checkFolder(currentDroppable)) {
-                                setSizeDropableLine(currentDroppable);
+                                increaseLine(currentDroppable);
                                 currentDroppable.style.backgroundColor = '#d0d7de';
-
-                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
-                                if (i == 1) {
-                                    currentDroppable.parentElement.children[0].style.height = '1em';
-                                }
-                    
                             } 
                             
                             if (checkWorkflow(currentDroppable)) {
-                                setSizeDropableLine(currentDroppable);
-
-                                let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
-                                if (i == 1) {
-                                    currentDroppable.parentElement.children[0].style.height = '1em';
-                                }
+                                increaseLine(currentDroppable);
                             }
                         }
                     }
@@ -282,7 +298,12 @@ function enableEditElements() {
                         
                         if (checkFolder(currentDroppable)) {
                             currentDroppable.style.backgroundColor = 'transparent';
-                            setZeroSizeDropableLine(currentDroppable);
+                            let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                            if (i == 1) {
+                                decreaseLineAfter(currentDroppable);
+                            } else {
+                                decreaseLine(currentDroppable)
+                            }
 
                             currentDroppable.children[3].appendChild(li);
                             currentDroppable.children[3].appendChild(dropableLine);
@@ -293,9 +314,13 @@ function enableEditElements() {
                         }
 
                         if (checkWorkflow(currentDroppable)) {
-                            setZeroSizeDropableLine(currentDroppable);
-
                             let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
+                            if (i == 1) {
+                                decreaseLineAfter(currentDroppable);
+                            } else {
+                                decreaseLine(currentDroppable)
+                            }
+
                             let d = currentDroppable.parentElement.children[i + 1];
                             d.after(li);
                             li.after(dropableLine);
@@ -306,7 +331,6 @@ function enableEditElements() {
 
                         if (checkDropableLine(currentDroppable)) {
                             // reset styles
-                            currentDroppable.style.background = 'transparent';
                             currentDroppable.style.height = '0em';
 
                             currentDroppable.after(li);
@@ -334,6 +358,12 @@ function enableEditElements() {
                         li.after(dropableLine);
                         moveActionListBlock();
                     }
+
+                    // когда отпустили элемент, все первые элементы сужаем обратно
+                    document.querySelectorAll('li.GHflexible-first-dropable').forEach((el) => {
+                        el.style.height = '0em';
+                    });
+                    
 
                     if (checkFolder(li)) {
                         depthFirstSearch(li, function(el) {
@@ -732,7 +762,9 @@ function folderCreate(name) {
 
     let ul = document.createElement('ul')
     ul.setAttribute('data-ghflexible-folder-list', 'true');
-    ul.appendChild(createDropableLine());
+    let dline = createDropableLine({first: true});
+    dline.setAttribute('hidden', '');
+    ul.appendChild(dline);
 
     li.appendChild(folderIcon);
     li.appendChild(span);
@@ -876,11 +908,14 @@ function depthFirstSearch(element, callback) {
     }
 }
 
-function createDropableLine() {
+function createDropableLine({first} = {first: false}) {
     let el = document.createElement('li');
     el.setAttribute('data-ghflexible-dropable-line', '');
     el.classList.add('ActionList-item');
     el.classList.add('GHflexible-dropable');
+    if (first) {
+        el.classList.add('GHflexible-first-dropable');
+    }
     return el;
 }
 
