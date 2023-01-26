@@ -4,6 +4,12 @@ const actionList =  document.querySelector(SELECTOR_ACTIONS);
 let EDITABLE = false;
 console.log(`RUN ACTIONS AWSOME`);
 
+document.addEventListener('click', (event) => {
+    if (!event.target.classList.contains('GHflexible-contextmenu')) {
+        removeConextMenus();
+    }
+});
+
 
 let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 // console.log(actionListHtml.children[10].getAttribute('hidden'));
@@ -112,7 +118,6 @@ function enableEditElements() {
             };
 
             let saveLiStyle = Object.assign({}, li.style);
-
             if (checkFolder(li)) {
                 li.oncontextmenu = function(event) {
                     event.stopPropagation();
@@ -120,29 +125,37 @@ function enableEditElements() {
                     console.log('##### ONCONTEXTMENU ###');
 
                     let div = document.createElement('div');
-                    
+                    div.classList.add('GHflexible-contextmenu');
                     div.style.position = 'absolute';
                     div.style.zIndex = 1000;
-                    document.body.append(div);
-
-                    div.onmouseout = function (event) {
-                        div.remove();
-                        console.log(div);
-                        delete(div);
-                    }
-
-
-                    div.style.width = '10em';
-                    div.style.height = '5em';
+                    div.style.width = '4em';
+                    div.style.height = '2.5em';
                     div.style.background = '#f6f8fa'; 
                     div.style.borderStyle  = 'solid';
                     div.style.borderColor = '#d6d9dc';
                     div.style.borderWidth = '1px';
-                    div.style.borderRadius = '1em';
-                    
+                    div.style.borderRadius = '0.5em';
                     div.style.left = event.clientX + 'px';
                     div.style.top = event.clientY + 'px';
 
+                    let p = document.createElement('p');
+                    p.classList.add('GHflexible-contextmenu');
+                    p.style.marginLeft = '0.45em';
+                    p.style.marginRight = '0.45em';
+                    p.style.marginTop = '0.4em';
+                    p.style.cursor = 'pointer';
+                    p.innerHTML = 'delete'
+                    div.append(p);
+
+                    document.body.append(div);
+
+                    p.onmouseover = function (event) {
+                        p.style.background = '#B6E3FF';
+                    }
+
+                    p.onmouseout = function (event) {
+                        p.style.background = '';
+                    }
                 }
             }
 
@@ -157,6 +170,9 @@ function enableEditElements() {
                 if (checkFolder(li)) {
                     folderActionClose(li);
                 }
+
+                // удаляем все контекстные меню
+                removeConextMenus();
 
                 // при перескавиваниях расширяем все первые элементы, для того чтобы на них можно было навестись
                 document.querySelectorAll('li.GHflexible-first-dropable').forEach((el) => {
@@ -247,7 +263,9 @@ function enableEditElements() {
                                 } else {
                                     decreaseLine(currentDroppable)
                                 }
-                                currentDroppable.style.backgroundColor = 'transparent';
+                                // currentDroppable.style.backgroundColor = 'transparent';
+                                currentDroppable.style.removeProperty('background-color');
+
                             }
                             if (checkWorkflow(currentDroppable)) {
                                 let i = getIndexInChildren(currentDroppable.parentElement, currentDroppable);
@@ -924,4 +942,11 @@ function checkDropableLine(el) {
         return true;
     }
     return false;
+}
+
+function removeConextMenus() {
+    document.querySelectorAll('.GHflexible-contextmenu').forEach((el) => {
+        el.remove();
+        delete(el);
+    });
 }
