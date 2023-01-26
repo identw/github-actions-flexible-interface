@@ -122,6 +122,7 @@ function enableEditElements() {
                 li.oncontextmenu = function(event) {
                     event.stopPropagation();
                     event.preventDefault();
+                    removeConextMenus();
                     console.log('##### ONCONTEXTMENU ###');
 
                     let div = document.createElement('div');
@@ -155,6 +156,45 @@ function enableEditElements() {
 
                     p.onmouseout = function (event) {
                         p.style.background = '';
+                    }
+
+                    p.onclick = function (event) {
+                        let parent = li.parentElement;
+                        let ul = li.children[3];
+
+                        // первый элемент пропускаем
+                        while (ul.children[1]) {
+                            parent.appendChild(ul.children[1]);
+                        }
+
+                        if (!checkRootFolder(parent) && checkFolder(parent.parentElement)) {
+                            parent = parent.parentElement;
+                        }
+
+                        if (checkRootFolder(parent)) {
+                            for (let i = 0; i < parent.children.length; i++) {
+                                let el = parent.children[i];
+                                if(checkWorkflow(el) || checkFolder(el)) {
+                                    el.removeAttribute('hidden')
+                                }
+                            }
+                        }
+
+                        depthFirstSearch(parent, function(el) {
+                            if (checkFolder(el)) {
+                                folderReset(el);
+                            }
+                            setIndents(el, countIndents(el));
+                        });
+                        removeConextMenus();
+                        
+                        let i = getIndexInChildren(li.parentElement, li);
+                        let dLi = li.parentElement.children[i + 1];
+                        li.remove();
+                        dLi.remove();
+                        delete(li);
+                        delete(dLi);
+                        
                     }
                 }
             }
