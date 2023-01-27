@@ -2,6 +2,11 @@ const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
 const actionList =  document.querySelector(SELECTOR_ACTIONS);
 // document.querySelector('div.PageLayout-columns').style.gridTemplateColumns = 'none';
 let EDITABLE = false;
+
+const TYPE_WORKFLOW = 1;
+const TYPE_FOLDER   = 2;
+const TYPE_ROOT     = 3;
+
 console.log(`RUN ACTIONS AWSOME`);
 
 document.addEventListener('click', (event) => {
@@ -21,21 +26,23 @@ let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
     let allWorkflowsUl = document.querySelector('ul.ActionList');
     allWorkflowsUl.children[1].after(globalButtons());
 
-    let folderProd = folderCreate("prod");
-    let folderStand = folderCreate("stand");
-    let folderOther = folderCreate("other");
-    actionListHtml.prepend(folderOther);
-    actionListHtml.prepend(folderStand);
-    actionListHtml.prepend(folderProd);
+    // let folderProd = folderCreate("prod");
+    // let folderStand = folderCreate("stand");
+    // let folderOther = folderCreate("other");
+    // actionListHtml.prepend(folderOther);
+    // actionListHtml.prepend(folderStand);
+    // actionListHtml.prepend(folderProd);
     actionListHtml.prepend(createDropableLine({first: true}));
 
     
-    folderProd.after(createDropableLine());
-    folderStand.after(createDropableLine());
-    folderOther.after(createDropableLine());
+    // folderProd.after(createDropableLine());
+    // folderStand.after(createDropableLine());
+    // folderOther.after(createDropableLine());
     
 
     initWorkflowsList();
+    getState();
+    disaableEditElements();
 })();
 
 function initWorkflowsList() {
@@ -66,13 +73,12 @@ function initWorkflowsList() {
             }
         }
     }
-    disaableEditElements();
     moveActionListBlock();
 
 }
 
 function disaableEditElements() {
-    let actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
     EDITABLE = false;
     depthFirstSearch(actionList, function(el) {
         el.ondragstart = null;
@@ -85,6 +91,7 @@ function disaableEditElements() {
             el.children[2].setAttribute('hidden', '');
         }
     });
+    saveState();
 }
 
 function enableEditElements() {
@@ -194,7 +201,6 @@ function enableEditElements() {
                         dLi.remove();
                         delete(li);
                         delete(dLi);
-                        
                     }
                 }
             }
@@ -788,7 +794,7 @@ function getNearUlParent(element) {
 }
 
 // folder
-function folderCreate(name) {
+function folderCreate(name, title = name) {
     // добавляем папку
     let li = document.createElement('li');
     // выставляю такие-же аттрибуты как в gtihub
@@ -798,7 +804,7 @@ function folderCreate(name) {
     // выставляю свои аттрибуты
     li.setAttribute('data-ghflexible-type', 'folder');
     li.setAttribute('data-ghflexible-name', name);
-    li.setAttribute('data-ghflexible-rename', name);
+    li.setAttribute('data-ghflexible-rename', title);
     li.setAttribute('data-ghflexible-folder-open', 'false');
     li.setAttribute('data-ghflexible-element-indent', '0');
     
@@ -830,6 +836,16 @@ function folderCreate(name) {
     li.appendChild(ul);
     
     return li;
+}
+
+function workflowCreate(name, title = name) {
+    let li = document.createElement('li');
+    li.setAttribute('tabindex', '-1');
+    li.setAttribute('data-test-selector', 'workflow-rendered');
+    li.setAttribute('tabindex', '-1');
+    li.setAttribute('tabindex', '-1');
+    li.setAttribute('tabindex', '-1');
+    li.setAttribute('tabindex', '-1');
 }
 
 function folderClosedIcon() {
@@ -878,6 +894,9 @@ function folderActionClose(folder) {
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].setAttribute('hidden', '');
+        if (checkFolder(ul.children[i]) || checkWorkflow(ul.children[i])) {
+            setIndents(ul.children[i], countIndents(ul.children[i]));
+        }
     }
 }
 
@@ -891,6 +910,9 @@ function folderActionOpen(folder) {
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
         ul.children[i].removeAttribute('hidden');
+        if (checkFolder(ul.children[i]) || checkWorkflow(ul.children[i])) {
+            setIndents(ul.children[i], countIndents(ul.children[i]));
+        }
     }
 }
 
@@ -898,9 +920,17 @@ function folderGetName(folder) {
     return folder.getAttribute('data-ghflexible-name');
 }
 
+function folderGetTitle(folder) {
+    return folder.getAttribute('data-ghflexible-rename');
+}
+
 // workflows
 function workflowGetName(workflow) {
     return workflow.getAttribute('data-ghflexible-name');
+}
+
+function workflowGetTitle(workflow) {
+    return workflow.getAttribute('data-ghflexible-rename');
 }
 
 
@@ -939,29 +969,156 @@ function depthFirstSearch(element, callback) {
 
     if (checkFolderList(element)) {
         // console.log(`### IS FOLDER LIST: ${folderGetName(element.parentElement)}`);
-        if (element.children.length > 0) {
-            depthFirstSearch(element.children[0], callback);
+        for (let i = 0; i < element.children.length; i++) {
+            depthFirstSearch(element.children[i], callback);
         }
     }
 
     if (checkDropableLine(element) ) {
         // console.log(`### IS DROPLINE ###`);
-
-        let index = getIndexInChildren(element.parentElement, element);
-        let length = element.parentElement.children.length;
-        if (index + 1 < length && !checkRootFolder(element.parentElement)) {
-            depthFirstSearch(element.parentElement.children[index + 1], callback);
-        }
     }
 
     if (checkWorkflow(element) ) {
         // console.log(`### IS WORKFLOW: ${workflowGetName(element)}`);
         callback(element);
+    }
+}
 
-        let index = getIndexInChildren(element.parentElement, element);
-        let length = element.parentElement.children.length;
-        if (index + 1 < length && !checkRootFolder(element.parentElement)) {
-            depthFirstSearch(element.parentElement.children[index + 1], callback);
+function getSaveKey() {
+    return 'ghflexible/' + window.location.pathname.split('/')[1] + '/' + window.location.pathname.split('/')[2];
+}
+
+function saveState() {
+    let state = {
+        type: TYPE_ROOT,
+        title: '',
+        list: [],
+    };
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    moveDomElementsToState(actionList, state);
+    localStorage.setItem(getSaveKey(), JSON.stringify(state));
+}
+
+function moveDomElementsToState(domElement, stateElement) {
+    if (checkRootFolder(domElement)) {
+        for (let i = 0; i < domElement.children.length; i++) {
+            moveDomElementsToState(domElement.children[i], stateElement);
+        }
+    }
+
+    if (checkFolder(domElement)) {
+        let folder = {
+            type: TYPE_FOLDER,
+            name: folderGetName(domElement),
+            title: folderGetTitle(domElement),
+            list: [],
+        };
+        stateElement.list.push(folder);
+        moveDomElementsToState(domElement.children[3], folder);
+    }
+
+    if (checkFolderList(domElement)) {
+        for (let i = 0; i < domElement.children.length; i++ ) {
+            moveDomElementsToState(domElement.children[i], stateElement);
+        }
+    }
+
+    if (checkDropableLine(domElement) ) {
+    }
+
+    if (checkWorkflow(domElement)) {
+        let workflow = {
+            name: workflowGetName(domElement),
+            title: workflowGetTitle(domElement),
+            type: TYPE_WORKFLOW,
+        };
+        stateElement.list.push(workflow);
+    }
+}
+
+function getState() {
+    let state = {
+        type: TYPE_ROOT,
+        title: '',
+        list: [],
+    }
+    if (localStorage.hasOwnProperty(getSaveKey())) {
+        state = JSON.parse(localStorage.getItem(getSaveKey()));
+    }
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    moveStateToDomElements(state, actionList);
+    // stateConvertGraph(state, state);
+
+}
+
+function stateConvertGraph(stateElement, parent) {
+    if (stateElement.type === TYPE_ROOT) {
+        for (const k in stateElement.list) {
+            stateConvertGraph(stateElement.list[k], stateElement);
+        }
+    }
+
+    if (stateElement.type === TYPE_FOLDER) {
+        stateElement.parent = parent;
+        for (const k in stateElement.list) {
+            stateConvertGraph(stateElement.list[k], stateElement);
+        }
+    }
+
+    if (stateElement.type === TYPE_WORKFLOW) {
+        stateElement.parent = parent;
+    }
+}
+
+function moveStateToDomElements(stateElement, domElement) {
+    if (stateElement.type === TYPE_ROOT) {
+        for (const k in stateElement.list) {
+            moveStateToDomElements(stateElement.list[k], domElement);
+        }
+    }
+
+    if (stateElement.type === TYPE_FOLDER) {
+        let folder = folderCreate(stateElement.name, stateElement.title);
+        if (checkRootFolder(domElement)) {
+            domElement.appendChild(folder);
+        }
+        if (checkFolder(domElement)) {
+            domElement.children[3].appendChild(folder);
+            folderReset(domElement);
+        }
+        folder.after(createDropableLine());
+        setIndents(folder, countIndents(folder));
+        folderReset(folder);
+        for (const k in stateElement.list) {
+            moveStateToDomElements(stateElement.list[k], folder);
+        }
+    }
+
+    if (stateElement.type === TYPE_WORKFLOW) {
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        let sel, index;
+        for (let i = 0; i < actionList.children.length; i++) {
+            const el = actionList.children[i];
+            if (checkWorkflow(el) && workflowGetName(el) === stateElement.name) {
+                sel = el;
+                index = i;
+                break;
+            }
+        }
+        const span = sel.children[1].children[0];
+        span.innerText = stateElement.title;
+        sel.setAttribute('data-ghflexible-rename', stateElement.title);
+        
+        // после того как  найденный элемент `sel` был перенесен, индекс следующих всех элементов понизился на единицу, поэтому actionList.children[index] ссылается на следующий элемент. Cледующий элемент всегда технический элемент dropLine, его переносим тоже.
+        if (checkFolder(domElement)) {
+            domElement.children[3].appendChild(sel);
+            domElement.children[3].appendChild(actionList.children[index]);
+            folderReset(domElement);
+
+        }
+        if (checkRootFolder(domElement)) {
+            domElement.appendChild(sel);
+            domElement.appendChild(actionList.children[index]);
         }
     }
 }
