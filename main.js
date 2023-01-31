@@ -1,13 +1,14 @@
+let EDITABLE           = false;
 const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
-const actionList =  document.querySelector(SELECTOR_ACTIONS);
-// document.querySelector('div.PageLayout-columns').style.gridTemplateColumns = 'none';
-let EDITABLE = false;
+const TYPE_WORKFLOW    = 1;
+const TYPE_FOLDER      = 2;
+const TYPE_ROOT        = 3;
 
-const TYPE_WORKFLOW = 1;
-const TYPE_FOLDER   = 2;
-const TYPE_ROOT     = 3;
-
-console.log(`RUN ACTIONS AWSOME`);
+// подписываемся на события переходв по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
+// https://turbo.hotwired.dev/reference/events
+window.addEventListener('turbo:visit', async function () {
+    await init();
+});
 
 document.addEventListener('click', (event) => {
     if (!event.target.classList.contains('GHflexible-contextmenu')) {
@@ -15,37 +16,75 @@ document.addEventListener('click', (event) => {
     }
 });
 
+window.onbeforeunload = function(event) {
+    disaableEditElements();
+};
 
-let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
-// console.log(actionListHtml.children[10].getAttribute('hidden'));
+(async () => {
+    await init();
+})();
 
-( async () => {
+async function init() {
+    console.log('Github-flexible init...');
     await waitClickShowWorkflows();
-    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
+    let actionList = document.querySelector(SELECTOR_ACTIONS);
 
     let allWorkflowsUl = document.querySelector('ul.ActionList');
     allWorkflowsUl.children[1].after(globalButtons());
+    actionList.prepend(createDropableLine({first: true}));
 
-    // let folderProd = folderCreate("prod");
-    // let folderStand = folderCreate("stand");
-    // let folderOther = folderCreate("other");
-    // actionListHtml.prepend(folderOther);
-    // actionListHtml.prepend(folderStand);
-    // actionListHtml.prepend(folderProd);
-    actionListHtml.prepend(createDropableLine({first: true}));
-
-    
-    // folderProd.after(createDropableLine());
-    // folderStand.after(createDropableLine());
-    // folderOther.after(createDropableLine());
-    
-
-    initWorkflowsList();
+    await initWorkflowsList();
     getState();
     disaableEditElements();
-})();
+}
 
-function initWorkflowsList() {
+function searchShowWorkflows() {
+    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
+    let showWorkflows = false;
+    for (let i = 0; i < actionListHtml.children.length; i++) {
+        let li = actionListHtml.children[i];
+        if (li.getAttribute('data-test-selector') == 'workflows-show-more' && li.getAttribute('hidden') === null) {
+            showWorkflows = li.children[0];
+        }
+    }
+    return showWorkflows;
+}
+
+function promiseSetTimeout(timeout) {
+    return new Promise((res, reject) => {
+        setTimeout(() => {
+            res("result");
+        }, timeout)
+    });
+}
+
+async function waitClickShowWorkflows() {
+    let clicksCount = 0;
+    let notExistCount = 0;
+    for (let i = 0; i < 100000; i++) {
+        await promiseSetTimeout(10);
+
+        let showWorkflows = true;
+        showWorkflows = searchShowWorkflows();
+
+        if (showWorkflows && showWorkflows !== true) {
+            if (clicksCount == 0) {
+                showWorkflows.click();
+                notExistCount = 0;
+            }
+            clicksCount++;
+        } else {
+            notExistCount++;
+        }
+
+        if (notExistCount > 5 && clicksCount > 0) {
+            break;
+        }
+        showWorkflows = true;
+    }
+}
+
+async function initWorkflowsList() {
     let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
     for (let i = 0; i < actionListHtml.children.length; i++) {
@@ -74,7 +113,6 @@ function initWorkflowsList() {
         }
     }
     moveActionListBlock();
-
 }
 
 function disaableEditElements() {
@@ -130,7 +168,6 @@ function enableEditElements() {
                     event.stopPropagation();
                     event.preventDefault();
                     removeConextMenus();
-                    console.log('##### ONCONTEXTMENU ###');
 
                     let div = document.createElement('div');
                     div.classList.add('GHflexible-contextmenu');
@@ -438,41 +475,6 @@ function enableEditElements() {
                 };
             };
     });
-}
-
-
-function searchShowWorkflows() {
-    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
-    let showWorkflows = false;
-    for (let i = 0; i < actionListHtml.children.length; i++) {
-        let li = actionListHtml.children[i];
-        if (li.getAttribute('data-test-selector') == 'workflows-show-more' && li.getAttribute('hidden') === null) {
-            showWorkflows = li.children[0];
-        }
-    }
-    return showWorkflows;
-}
-
-function promiseSetTimeout(timeout) {
-    return new Promise((res, reject) => {
-        setTimeout(() => {
-            res("result");
-        }, timeout)
-    });
-}
-
-async function waitClickShowWorkflows() {
-    let showWorkflows = true;
-
-    let i = 0;
-    while(showWorkflows && i < 100) {
-        await promiseSetTimeout(1000);
-        showWorkflows = searchShowWorkflows();
-        if (showWorkflows && showWorkflows !== true) {
-            showWorkflows.click();
-        }
-        i++;
-    }
 }
 
 function indexInActions(actionList, name) {
@@ -822,6 +824,7 @@ function folderCreate(name, title = name) {
     folderIcon.onmousedown = function(event) {
         event.stopPropagation();
         folderActionClick(this.parentElement);
+        saveState();
     }
 
     let ul = document.createElement('ul')
@@ -1009,6 +1012,7 @@ function moveDomElementsToState(domElement, stateElement) {
     if (checkFolder(domElement)) {
         let folder = {
             type: TYPE_FOLDER,
+            isOpen: domElement.getAttribute('data-ghflexible-folder-open') === 'true',
             name: folderGetName(domElement),
             title: folderGetTitle(domElement),
             list: [],
@@ -1051,25 +1055,6 @@ function getState() {
 
 }
 
-function stateConvertGraph(stateElement, parent) {
-    if (stateElement.type === TYPE_ROOT) {
-        for (const k in stateElement.list) {
-            stateConvertGraph(stateElement.list[k], stateElement);
-        }
-    }
-
-    if (stateElement.type === TYPE_FOLDER) {
-        stateElement.parent = parent;
-        for (const k in stateElement.list) {
-            stateConvertGraph(stateElement.list[k], stateElement);
-        }
-    }
-
-    if (stateElement.type === TYPE_WORKFLOW) {
-        stateElement.parent = parent;
-    }
-}
-
 function moveStateToDomElements(stateElement, domElement) {
     if (stateElement.type === TYPE_ROOT) {
         for (const k in stateElement.list) {
@@ -1087,6 +1072,10 @@ function moveStateToDomElements(stateElement, domElement) {
             folderReset(domElement);
         }
         folder.after(createDropableLine());
+        folder.setAttribute('data-ghflexible-folder-open', 'false');
+        if (stateElement.isOpen) {
+            folder.setAttribute('data-ghflexible-folder-open', 'true');
+        }
         setIndents(folder, countIndents(folder));
         folderReset(folder);
         for (const k in stateElement.list) {
@@ -1120,6 +1109,25 @@ function moveStateToDomElements(stateElement, domElement) {
             domElement.appendChild(sel);
             domElement.appendChild(actionList.children[index]);
         }
+    }
+}
+
+function stateConvertGraph(stateElement, parent) {
+    if (stateElement.type === TYPE_ROOT) {
+        for (const k in stateElement.list) {
+            stateConvertGraph(stateElement.list[k], stateElement);
+        }
+    }
+
+    if (stateElement.type === TYPE_FOLDER) {
+        stateElement.parent = parent;
+        for (const k in stateElement.list) {
+            stateConvertGraph(stateElement.list[k], stateElement);
+        }
+    }
+
+    if (stateElement.type === TYPE_WORKFLOW) {
+        stateElement.parent = parent;
     }
 }
 
