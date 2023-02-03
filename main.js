@@ -6,27 +6,33 @@ const TYPE_ROOT        = 3;
 
 // подписываемся на события переходв по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
 // https://turbo.hotwired.dev/reference/events
-window.addEventListener('turbo:visit', async function () {
+window.addEventListener('turbo:load', async function () {
     await init();
 });
 
-document.addEventListener('click', (event) => {
-    if (!event.target.classList.contains('GHflexible-contextmenu')) {
-        removeConextMenus();
-    }
-});
-
-window.onbeforeunload = function(event) {
-    disaableEditElements();
-};
-
-(async () => {
-    await init();
-})();
+// (async () => {
+//     await init();
+// })();
 
 async function init() {
+    if (!checkRun()) { 
+        document.removeEventListener('click', handlerRemoveContextMenu);
+        window.onbeforeunload = null;
+        console.log("remove handlers");
+        return;
+    }
+
     console.log('Github-flexible init...');
     await waitClickShowWorkflows();
+    // console.log(`second: ${window.location.pathname}`);
+
+    document.addEventListener('click', handlerRemoveContextMenu);
+    
+    window.onbeforeunload = function() {
+        disaableEditElements();
+    };
+
+    
     let actionList = document.querySelector(SELECTOR_ACTIONS);
 
     let allWorkflowsUl = document.querySelector('ul.ActionList');
@@ -36,6 +42,93 @@ async function init() {
     await initWorkflowsList();
     getState();
     disaableEditElements();
+
+    const l = window.location.pathname.split('/');
+    const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
+    const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
+
+    depthFirstSearch(actionList, async function(el) {
+        if (checkWorkflow(el)) {
+            const name = workflowGetUrlName(el);
+            const r    = await fetch(urlWorklowParams + name, {
+                "headers": {
+                  "accept": "text/html",
+                  "accept-language": "en-US,en;q=0.9",
+                  "sec-fetch-dest": "empty",
+                  "sec-fetch-mode": "cors",
+                  "sec-fetch-site": "same-origin",
+                  "x-requested-with": "XMLHttpRequest"
+                },
+                "referrer": window.location.origin + '/' + window.location.pathname,
+                "referrerPolicy": "no-referrer-when-downgrade",
+                "body": null,
+                "method": "GET",
+                "mode": "cors",
+                "credentials": "include"
+            });
+            const dom   = new DOMParser().parseFromString(await r.text(), 'text/html');
+            const token = dom.children[0].children[1].children[0].children[1].children[0].value;
+
+            el.setAttribute('data-ghflexible-run-token', token);
+
+            // await fetch(urlWorkflowRun, {
+            //     "headers": {
+            //         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+            //         "accept-language": "en-US,en;q=0.9",
+            //         "cache-control": "max-age=0",
+            //         "content-type": "application/x-www-form-urlencoded",
+            //         "sec-fetch-dest": "document",
+            //         "sec-fetch-mode": "navigate",
+            //         "sec-fetch-site": "same-origin",
+            //         "sec-fetch-user": "?1",
+            //         "upgrade-insecure-requests": "1"
+            //     },
+            //     "referrer": window.location.origin + '/' + window.location.pathname,
+            //     "referrerPolicy": "no-referrer-when-downgrade",
+            //     "body": `authenticity_token=${token}&workflow=.github%2Fworkflows%2F${name}&branch=main&show_workflow_tip=`,
+            //     "method": "POST",
+            //     "mode": "cors",
+            //     "credentials": "include"
+            // });
+
+
+        }
+    });
+
+    // let response = await rrr.text();
+    // let parse = new DOMParser().parseFromString(response, 'text/html');
+    // let form = parse.children[0].children[1].children[0];
+
+    // let div = document.createElement('div');
+    // div.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--top-right mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
+    // div.appendChild(form);
+    // div.style.position = 'absolute';
+    // div.style.zIndex = 1000;
+    // div.style.left = '400px';
+    // div.style.top = '300px';
+
+    // // document.body.append(div);
+
+
+}
+
+function checkRun() {
+    // console.log(window.location.pathname);
+    const location = window.location.pathname.split('/');
+    let flag = false;
+    if (location[3] === 'actions' && location.length === 4 ) {
+        flag = true;
+    }
+    if (location[3] === 'actions' && location[4] === 'workflows' && location.length === 6 ) {
+        flag = true;
+    }
+    return flag;
+}
+
+function handlerRemoveContextMenu(event) {
+    if (!event.target.classList.contains('GHflexible-contextmenu')) {
+        removeConextMenus();
+    }
 }
 
 function searchShowWorkflows() {
@@ -59,6 +152,10 @@ function promiseSetTimeout(timeout) {
 }
 
 async function waitClickShowWorkflows() {
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    if (actionList.children.length < 11) {
+        return;
+    }
     let clicksCount = 0;
     let notExistCount = 0;
     for (let i = 0; i < 100000; i++) {
@@ -76,7 +173,6 @@ async function waitClickShowWorkflows() {
         } else {
             notExistCount++;
         }
-
         if (notExistCount > 5 && clicksCount > 0) {
             break;
         }
@@ -811,7 +907,8 @@ function folderCreate(name, title = name) {
     li.setAttribute('data-ghflexible-element-indent', '0');
     
     // ActionList-item - класс из gtihub, GHflexible-dir - свой класс
-    li.setAttribute('class', 'ActionList-item GHflexible-dir GHflexible-dropable');
+    li.setAttribute('class', 'GHflexible-dir GHflexible-dropable');
+    li.style.listStyleType = 'none';
     
     let span = document.createElement('span');
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
@@ -936,6 +1033,11 @@ function workflowGetTitle(workflow) {
     return workflow.getAttribute('data-ghflexible-rename');
 }
 
+function workflowGetUrlName(workflow) {
+    const s = workflow.children[1].href.split('/');
+    return s[s.length - 1];
+}
+
 
 function moveActionListBlock() {
 
@@ -952,7 +1054,11 @@ function moveActionListBlock() {
         }
     });
     const block = document.getElementsByClassName('PageLayout')[0];
-    let px = (maxLetters * 10 + 56) + 'px';
+    let px = (maxLetters * 10 + 56);
+    if (px < 256) {
+        px = 256;
+    }
+    px = px + 'px';
     block.style.setProperty('--Layout-pane-width', px);
 }
 

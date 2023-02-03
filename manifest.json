@@ -13,14 +13,12 @@
         "storage"
     ],
     "host_permissions": [
-        "https://github.com/**/actions/",
-        "https://github.com/**/acitons/**/*"
+        "https://github.com/**/*"
     ],
     "content_scripts": [
         {
             "matches": [
-                "*://*.github.com/*/actions",
-                "*://*.github.com/*/actions/*"
+                "https://github.com/**/*"
             ],
             "js": [
                 "main.js"
