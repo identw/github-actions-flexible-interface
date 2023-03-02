@@ -67,7 +67,15 @@ async function init() {
                 "credentials": "include"
             });
             const dom   = new DOMParser().parseFromString(await r.text(), 'text/html');
-            const token = dom.children[0].children[1].children[0].children[1].children[0].value;
+            // const token = dom.children[0].children[1].children[0].children[1].children[0].value;
+            
+            let token = '';
+            //  querySelectorAll return NodeList object. And it object don't support "filter" method =(. Therefore I am using forEach to find token 
+            dom.querySelectorAll('input').forEach((i)  => {
+                if (i.getAttribute('name') == 'authenticity_token') {
+                    token = i.value
+                }
+            });
 
             el.setAttribute('data-ghflexible-run-token', token);
 
@@ -94,20 +102,6 @@ async function init() {
 
         }
     });
-
-    // let response = await rrr.text();
-    // let parse = new DOMParser().parseFromString(response, 'text/html');
-    // let form = parse.children[0].children[1].children[0];
-
-    // let div = document.createElement('div');
-    // div.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--top-right mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
-    // div.appendChild(form);
-    // div.style.position = 'absolute';
-    // div.style.zIndex = 1000;
-    // div.style.left = '400px';
-    // div.style.top = '300px';
-
-    // // document.body.append(div);
 
 
 }
