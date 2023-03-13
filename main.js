@@ -24,24 +24,21 @@ async function init() {
 
     console.log('Github-flexible init...');
     await waitClickShowWorkflows();
-    // console.log(`second: ${window.location.pathname}`);
-
     document.addEventListener('click', handlerRemoveContextMenu);
     
     window.onbeforeunload = function() {
-        disaableEditElements();
+        disableEditElements();
     };
 
-    
-    let actionList = document.querySelector(SELECTOR_ACTIONS);
-
+    let actionList     = document.querySelector(SELECTOR_ACTIONS);
     let allWorkflowsUl = document.querySelector('ul.ActionList');
+
     allWorkflowsUl.children[1].after(globalButtons());
     actionList.prepend(createDropableLine({first: true}));
 
     await initWorkflowsList();
     getState();
-    disaableEditElements();
+    disableEditElements();
 
     const l = window.location.pathname.split('/');
     const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
@@ -211,7 +208,7 @@ async function initWorkflowsList() {
     moveActionListBlock();
 }
 
-function disaableEditElements() {
+function disableEditElements() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     EDITABLE = false;
     depthFirstSearch(actionList, function(el) {
@@ -601,12 +598,17 @@ function globalButtons() {
     editIcon.style.height = "20px";
     editIcon.style.cursor = 'pointer';
 
-
     const crFolderIcon = createFolderIcon();
     crFolderIcon.style.marginRight = '0.5em';
     crFolderIcon.style.width = "20px";
     crFolderIcon.style.height = "20px";
     crFolderIcon.style.cursor = 'pointer';
+
+    const resetIcon = createResetIcon();
+    resetIcon.style.marginRight = '0.5em';
+    resetIcon.style.width = "20px";
+    resetIcon.style.height = "20px";
+    resetIcon.style.cursor = 'pointer';
 
     const groupBuildIcon = createGroupBuildIcon();
     groupBuildIcon.style.marginRight = '0.5em';
@@ -616,13 +618,17 @@ function globalButtons() {
 
     editIcon.onclick = function (event) {
         if (EDITABLE) {
-            disaableEditElements();
+            disableEditElements();
             moveActionListBlock();
         } else {
             enableEditElements();
             moveActionListBlock();
 
         }
+    }
+
+    resetIcon.onclick = function (event) {
+        resetState();
     }
 
     crFolderIcon.onclick = function(event) {
@@ -706,6 +712,7 @@ function globalButtons() {
 
     divIco.appendChild(crFolderIcon);
     divIco.appendChild(editIcon);
+    divIco.appendChild(resetIcon);
     divIco.appendChild(groupBuildIcon);
     div.appendChild(divIco);
     li.appendChild(div);
@@ -737,6 +744,12 @@ function createFolderIcon() {
 function createGroupBuildIcon() {
     const icon = document.createElement('svg');
     icon.innerHTML = `<svg fill="#000000" version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" viewBox="0 0 512 512" xml:space="preserve"><g><g><polygon points="175.425,9.748 175.425,25.477 463.788,25.477 463.788,31.768 479.517,31.768 479.517,9.748"/></g></g><g><g><path d="M70.566,384.21v-8.504H54.837v8.504H0V512h127.79V384.21H70.566z M112.061,496.271H15.729v-96.332h96.332V496.271z"/></g></g><g><g><path d="M455.399,384.21v-8.504H439.67v8.504h-55.46V512H512V384.21H455.399z M496.271,496.271h-96.332v-96.332h96.332V496.271z"/></g></g><g><g><path d="M261.41,384.21v-8.504h-15.729v8.504h-53.576V512h127.79V384.21H261.41z M304.166,496.271h-96.332v-96.332h96.332V496.271 z"/></g></g><g><g><path d="M487.987,319.895V40.022H167.811L167.808,0H24.013v319.895H245.68v18.062H54.837v30.409h15.729v-14.68h175.115v14.68 h15.729v-14.68H439.67v14.68h15.729v-30.409H261.41v-18.062H487.987z M39.742,304.166V15.729h112.34l0.003,40.022h320.174v248.416 H39.742z"/></g></g><g><g><path d="M256.001,88.048c-48.473,0-87.909,39.435-87.909,87.909c0,48.473,39.435,87.909,87.909,87.909 c48.473,0,87.908-39.435,87.908-87.909C343.909,127.484,304.473,88.048,256.001,88.048z M256.001,248.137 c-39.8,0-72.18-32.379-72.18-72.18c0-39.8,32.379-72.18,72.18-72.18c39.799,0,72.179,32.379,72.179,72.18 C328.18,215.757,295.8,248.137,256.001,248.137z"/></g></g><g><g><path d="M256.001,112.061c-35.233,0-63.896,28.663-63.896,63.896s28.663,63.896,63.896,63.896 c35.232,0,63.895-28.663,63.895-63.896S291.232,112.061,256.001,112.061z M256.001,224.123c-26.559,0-48.167-21.607-48.167-48.167 c0-26.559,21.608-48.167,48.167-48.167c26.559,0,48.166,21.607,48.166,48.167C304.166,202.516,282.56,224.123,256.001,224.123z"/></g></g><g><g><polygon points="282.456,154.386 247.996,188.848 229.544,170.395 218.422,181.518 247.996,211.092 293.579,165.51 "/></g></g><g><g><rect x="55.89" y="32.821" width="15.729" height="15.729"/></g></g><g><g><rect x="87.348" y="32.821" width="15.729" height="15.729"/></g></g><g><g><rect x="118.805" y="32.821" width="16.777" height="15.729"/></g></g></svg>`;
+    return icon.firstChild;
+}
+
+function createResetIcon() {
+    const icon = document.createElement('svg');
+    icon.innerHTML = `<svg fill="#000000" width="15px" height="15px" viewBox="0 0 1920 1920" xmlns="http://www.w3.org/2000/svg"><path d="M960 0v112.941c467.125 0 847.059 379.934 847.059 847.059 0 467.125-379.934 847.059-847.059 847.059-467.125 0-847.059-379.934-847.059-847.059 0-267.106 126.607-515.915 338.824-675.727v393.374h112.94V112.941H0v112.941h342.89C127.058 407.38 0 674.711 0 960c0 529.355 430.645 960 960 960s960-430.645 960-960S1489.355 0 960 0" fill-rule="evenodd"/></svg>`;
     return icon.firstChild;
 }
 
@@ -848,7 +861,6 @@ function countIndents(element) {
 }
 
 // checkings object
-
 function checkRootFolder(element) {
     if (element.getAttribute('data-test-selector') === 'workflows-list') {
         return true
@@ -1111,6 +1123,18 @@ function getSaveKey() {
     return 'ghflexible/' + window.location.pathname.split('/')[1] + '/' + window.location.pathname.split('/')[2];
 }
 
+function resetState() {
+    const c = confirm("Are you sure to reset?")
+    if (c === true) {
+        console.log(getSaveKey());
+        localStorage.removeItem(getSaveKey());
+
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        actionList.remove();
+        window.location.reload();
+    }
+}
+
 function saveState() {
     let state = {
         type: TYPE_ROOT,
@@ -1172,7 +1196,6 @@ function getState() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     moveStateToDomElements(state, actionList);
     // stateConvertGraph(state, state);
-
 }
 
 function moveStateToDomElements(stateElement, domElement) {
