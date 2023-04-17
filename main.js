@@ -4,6 +4,12 @@ const TYPE_WORKFLOW    = 1;
 const TYPE_FOLDER      = 2;
 const TYPE_ROOT        = 3;
 
+
+let GROUP_BUILD_FORM = {
+    params: {},
+    form: undefined
+}
+
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
 // https://turbo.hotwired.dev/reference/events
 window.addEventListener('turbo:load', async function () {
@@ -63,24 +69,50 @@ async function init() {
                 "mode": "cors",
                 "credentials": "include"
             });
-            const dom   = new DOMParser().parseFromString(await r.text(), 'text/html');
-            // const token = dom.children[0].children[1].children[0].children[1].children[0].value;
+            const manualBuildForm = new DOMParser().parseFromString(await r.text(), 'text/html');
             
             let token = '';
             //  querySelectorAll return NodeList object. And it object don't support "filter" method =(. Therefore I am using forEach to find token 
-            dom.querySelectorAll('input').forEach((i)  => {
+            manualBuildForm.querySelectorAll('input').forEach((i)  => {
                 if (i.getAttribute('name') == 'authenticity_token') {
                     token = i.value
                 }
             });
 
             el.setAttribute('data-ghflexible-run-token', token);
-
-            dom.querySelectorAll('input').forEach((i)  => {
-                
+            
+            manualBuildForm.querySelectorAll('div.form-group.mt-1.mb-2').forEach((i)  => {
+                console.log(i);
+                getParam(i);
             });
+            // TODO:
+            // Создать глобальную переменную, в которой будут все параметры и их типы всех задач
+            // getParam нужно доработать, чтобы можно было вытащить тип параметра
+            // когда нажимаем на кнопку group build появляется возможность ставить checkbox'ы напротив workflow с поддержкой ручного запуска, и в зависимости от того как workflow выбраны, формируем форму для запуска билда, общие параметры выносим вверх, уникальные для задачи вниз.
+
+            if (!GROUP_BUILD_FORM.form) {
+                manualBuildForm.querySelectorAll('form').forEach((i)  => {
+                    const method = i.getAttribute('method');
+                    if (method == 'post') {
+                        i.remove();
+                    }
+                });
+                const body = manualBuildForm.querySelector('body');
+
+                GROUP_BUILD_FORM.form = document.createElement('div');
+                GROUP_BUILD_FORM.form.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--top-right mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
+                GROUP_BUILD_FORM.form.appendChild(body.children[0]);
+                GROUP_BUILD_FORM.form.style.position = 'absolute';
+                GROUP_BUILD_FORM.form.style.zIndex = 1000;
+                GROUP_BUILD_FORM.form.style.top = '100px';
+                GROUP_BUILD_FORM.form.style.left = '100px';
+            }
 
 
+
+            
+            // читаем html первого workflow и сделаем из нее шаблон клонируя елемент: const aaa = dom.cloneNode(true);, и удалив из него вторую form
+            // вторую форму создаем динамически в зависимости от параметров во всех workflow. Пример второй формы глянь в 1.html. То есть нужно считать все типы параметров
 
             // await fetch(urlWorkflowRun, {
             //     "headers": {
@@ -615,6 +647,15 @@ function globalButtons() {
     groupBuildIcon.style.width = "20px";
     groupBuildIcon.style.height = "20px";
     groupBuildIcon.style.cursor = 'pointer';
+
+    groupBuildIcon.onclick = function(event) {
+        console.log('### create FROM ###');
+        const form = GROUP_BUILD_FORM.form;
+        const body = document.querySelector('body');
+        console.log(form);
+        console.log(body);
+        body.appendChild(form);
+    }
 
     editIcon.onclick = function (event) {
         if (EDITABLE) {
@@ -1297,4 +1338,24 @@ function removeConextMenus() {
         el.remove();
         delete(el);
     });
+}
+
+function getParam(el) {
+    if (
+        !el.classList.contains('form-group') ||
+        !el.classList.contains('mt-1') ||
+        !el.classList.contains('mb-2')
+    ) {
+        return undefined;
+    }
+
+    const div = el.querySelector('div.form-group-header');
+    let paramName = '';
+    if (div) {
+        paramName = div.children[0].innerText.replace(/\s/g, '');
+    } else {
+        const label = el.querySelector('label.color-fg-default');
+        paramName = label.innerText.replace(/\s/g, '');
+    }
+
 }
