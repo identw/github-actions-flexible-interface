@@ -5,10 +5,16 @@ const TYPE_FOLDER      = 2;
 const TYPE_ROOT        = 3;
 
 
-let GROUP_BUILD_FORM = {
-    params: {},
-    form: undefined
-}
+let GROUP_BUILD_FORM = undefined;
+let WORKFLOW_PARAMS = {};
+
+//  TODO:
+// когда нажимаем на кнопку group build появляется возможность ставить checkbox'ы напротив workflow с поддержкой ручного запуска, и в зависимости от того как workflow выбраны, формируем форму для запуска билда, общие параметры выносим вверх, уникальные для задачи вниз.
+// А для того чтобы это всё делать, нужно изначално считать все параметры у всех workflow. То есть вместо PARAMS должна быть WORKFLOW_PARAMS в котором будут хранится все workflow с параметрами
+// читаем html первого workflow и сделаем из нее шаблон клонируя елемент: const aaa = dom.cloneNode(true);, и удалив из него вторую form
+// вторую форму создаем динамически в зависимости от параметров во всех workflow. Пример второй формы глянь в 1.html. То есть нужно считать все типы параметров
+
+// верстка для li вешаем display: flex, для svg workflow и edit делаем witdh=20px, height=30px
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
 // https://turbo.hotwired.dev/reference/events
@@ -46,99 +52,15 @@ async function init() {
     getState();
     disableEditElements();
 
-    const l = window.location.pathname.split('/');
-    const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
-    const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
-
     depthFirstSearch(actionList, async function(el) {
         if (checkWorkflow(el)) {
-            const name = workflowGetUrlName(el);
-            const r    = await fetch(urlWorklowParams + name, {
-                "headers": {
-                  "accept": "text/html",
-                  "accept-language": "en-US,en;q=0.9",
-                  "sec-fetch-dest": "empty",
-                  "sec-fetch-mode": "cors",
-                  "sec-fetch-site": "same-origin",
-                  "x-requested-with": "XMLHttpRequest"
-                },
-                "referrer": window.location.origin + '/' + window.location.pathname,
-                "referrerPolicy": "no-referrer-when-downgrade",
-                "body": null,
-                "method": "GET",
-                "mode": "cors",
-                "credentials": "include"
-            });
-            const manualBuildForm = new DOMParser().parseFromString(await r.text(), 'text/html');
-            
-            let token = '';
-            //  querySelectorAll return NodeList object. And it object don't support "filter" method =(. Therefore I am using forEach to find token 
-            manualBuildForm.querySelectorAll('input').forEach((i)  => {
-                if (i.getAttribute('name') == 'authenticity_token') {
-                    token = i.value
-                }
-            });
-
-            el.setAttribute('data-ghflexible-run-token', token);
-            
-            manualBuildForm.querySelectorAll('div.form-group.mt-1.mb-2').forEach((i)  => {
-                console.log(i);
-                getParam(i);
-            });
-            // TODO:
-            // Создать глобальную переменную, в которой будут все параметры и их типы всех задач
-            // getParam нужно доработать, чтобы можно было вытащить тип параметра
-            // когда нажимаем на кнопку group build появляется возможность ставить checkbox'ы напротив workflow с поддержкой ручного запуска, и в зависимости от того как workflow выбраны, формируем форму для запуска билда, общие параметры выносим вверх, уникальные для задачи вниз.
-
-            if (!GROUP_BUILD_FORM.form) {
-                manualBuildForm.querySelectorAll('form').forEach((i)  => {
-                    const method = i.getAttribute('method');
-                    if (method == 'post') {
-                        i.remove();
-                    }
-                });
-                const body = manualBuildForm.querySelector('body');
-
-                GROUP_BUILD_FORM.form = document.createElement('div');
-                GROUP_BUILD_FORM.form.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--top-right mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
-                GROUP_BUILD_FORM.form.appendChild(body.children[0]);
-                GROUP_BUILD_FORM.form.style.position = 'absolute';
-                GROUP_BUILD_FORM.form.style.zIndex = 1000;
-                GROUP_BUILD_FORM.form.style.top = '100px';
-                GROUP_BUILD_FORM.form.style.left = '100px';
+            if (getTypeWorkflow(el) === 'manual')  {
+                await getParams(el);
             }
-
-
-
-            
-            // читаем html первого workflow и сделаем из нее шаблон клонируя елемент: const aaa = dom.cloneNode(true);, и удалив из него вторую form
-            // вторую форму создаем динамически в зависимости от параметров во всех workflow. Пример второй формы глянь в 1.html. То есть нужно считать все типы параметров
-
-            // await fetch(urlWorkflowRun, {
-            //     "headers": {
-            //         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-            //         "accept-language": "en-US,en;q=0.9",
-            //         "cache-control": "max-age=0",
-            //         "content-type": "application/x-www-form-urlencoded",
-            //         "sec-fetch-dest": "document",
-            //         "sec-fetch-mode": "navigate",
-            //         "sec-fetch-site": "same-origin",
-            //         "sec-fetch-user": "?1",
-            //         "upgrade-insecure-requests": "1"
-            //     },
-            //     "referrer": window.location.origin + '/' + window.location.pathname,
-            //     "referrerPolicy": "no-referrer-when-downgrade",
-            //     "body": `authenticity_token=${token}&workflow=.github%2Fworkflows%2F${name}&branch=main&show_workflow_tip=`,
-            //     "method": "POST",
-            //     "mode": "cors",
-            //     "credentials": "include"
-            // });
-
-
         }
     });
 
-
+    console.log(WORKFLOW_PARAMS);
 }
 
 function checkRun() {
@@ -224,12 +146,17 @@ async function initWorkflowsList() {
                 li.setAttribute('data-ghflexible-name', name);
                 li.setAttribute('data-ghflexible-rename', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
+                li.setAttribute('data-ghflexible-typeworkflow', 'manual');
                 li.setAttribute('data-ghflexible-element-indent', '0');
                 li.children[1].style.display = 'inline';
                 li.children[1].style.paddingLeft = '0em';
                 li.appendChild(renameElement());
+                li.appendChild(checkBoxWorkflow());
                 li.after(createDropableLine());
-                
+
+                if (li.classList.contains('ActionList-item--navActive')) {
+                    li.setAttribute('data-ghflexible-typeworkflow', 'auto');
+                }
             }
 
             if (!li.classList.contains('GHflexible-dropable')) {
@@ -650,7 +577,7 @@ function globalButtons() {
 
     groupBuildIcon.onclick = function(event) {
         console.log('### create FROM ###');
-        const form = GROUP_BUILD_FORM.form;
+        const form = GROUP_BUILD_FORM;
         const body = document.querySelector('body');
         console.log(form);
         console.log(body);
@@ -928,6 +855,10 @@ function checkWorkflow(element) {
         return true
     }
     return false;
+}
+
+function getTypeWorkflow(element) {
+    return element.getAttribute('data-ghflexible-typeworkflow')
 }
 
 function checkFolderParent(element) {
@@ -1236,7 +1167,6 @@ function getState() {
     }
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     moveStateToDomElements(state, actionList);
-    // stateConvertGraph(state, state);
 }
 
 function moveStateToDomElements(stateElement, domElement) {
@@ -1350,12 +1280,158 @@ function getParam(el) {
     }
 
     const div = el.querySelector('div.form-group-header');
-    let paramName = '';
+    let name = '';
     if (div) {
-        paramName = div.children[0].innerText.replace(/\s/g, '');
+        name = div.children[0].innerText.replace(/\s/g, '');
     } else {
         const label = el.querySelector('label.color-fg-default');
-        paramName = label.innerText.replace(/\s/g, '');
+        name = label.innerText.replace(/\s/g, '');
+    }
+    
+    type = '';
+    value = ''
+    selectValues = [];
+    if (el.querySelector('select.form-select')) {
+        type = 'select';
+        value = el.querySelector('select.form-select').getAttribute('value');
+
+        el.querySelectorAll('option').forEach((i) => {
+            selectValues.push(i.getAttribute('value'));
+        });
+        selectValues.sort();
+    }
+    if (el.querySelector('div.form-checkbox')) {
+        type = 'boolean';
+        el.querySelectorAll('input').forEach((i) => {
+            if (i.getAttribute('type') == "checkbox") {
+                value = i.getAttribute('value');
+            }
+        });
+    }
+    if (el.querySelector('input.form-control.input-contrast')) {
+        type = 'string';
+        value = el.querySelector('input.form-control.input-contrast').getAttribute('value');
+
     }
 
+    return {
+        name: name,
+        type: type,
+        value: value,
+        selectValues: selectValues,
+    }
+}
+
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+
+    // If you don't care about the order of the elements inside
+    // the array, you should sort both arrays here.
+    // Please note that calling sort on an array will modify that array.
+    // you might want to clone your array first.
+
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
+
+async function getParams(el) {
+    const l = window.location.pathname.split('/');
+    const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
+    const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
+
+    const name = workflowGetUrlName(el);
+    WORKFLOW_PARAMS[name] = [];
+
+    const r  = await fetch(urlWorklowParams + name, {
+        "headers": {
+        "accept": "text/html",
+        "accept-language": "en-US,en;q=0.9",
+        "sec-fetch-dest": "empty",
+        "sec-fetch-mode": "cors",
+        "sec-fetch-site": "same-origin",
+        "x-requested-with": "XMLHttpRequest"
+        },
+        "referrer": window.location.origin + '/' + window.location.pathname,
+        "referrerPolicy": "no-referrer-when-downgrade",
+        "body": null,
+        "method": "GET",
+        "mode": "cors",
+        "credentials": "include"
+    });
+    const manualBuildForm = new DOMParser().parseFromString(await r.text(), 'text/html');
+    
+    let token = '';
+    //  querySelectorAll return NodeList object. And it object don't support "filter" method =(. Therefore I am using forEach to find token 
+    manualBuildForm.querySelectorAll('input').forEach((i)  => {
+        if (i.getAttribute('name') == 'authenticity_token') {
+            token = i.value
+        }
+    });
+
+    el.setAttribute('data-ghflexible-run-token', token);
+    
+    manualBuildForm.querySelectorAll('div.form-group.mt-1.mb-2').forEach((i)  => {
+        WORKFLOW_PARAMS[name].push(getParam(i));
+    });
+
+    // GROUP_BUILD_FORM - записываем первую часть формы 
+    if (!GROUP_BUILD_FORM) {
+        manualBuildForm.querySelectorAll('form').forEach((i)  => {
+            const method = i.getAttribute('method');
+            if (method == 'post') {
+                i.remove();
+            }
+        });
+        const body = manualBuildForm.querySelector('body');
+
+        GROUP_BUILD_FORM = document.createElement('div');
+        GROUP_BUILD_FORM.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--ight mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
+        GROUP_BUILD_FORM.appendChild(body.children[0]);
+        GROUP_BUILD_FORM.style.position = 'absolute';
+        GROUP_BUILD_FORM.style.zIndex = 1000;
+        GROUP_BUILD_FORM.style.top = '100px';
+        GROUP_BUILD_FORM.style.left = '100px';
+    }
+    
+    // await fetch(urlWorkflowRun, {
+    //     "headers": {
+    //         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
+    //         "accept-language": "en-US,en;q=0.9",
+    //         "cache-control": "max-age=0",
+    //         "content-type": "application/x-www-form-urlencoded",
+    //         "sec-fetch-dest": "document",
+    //         "sec-fetch-mode": "navigate",
+    //         "sec-fetch-site": "same-origin",
+    //         "sec-fetch-user": "?1",
+    //         "upgrade-insecure-requests": "1"
+    //     },
+    //     "referrer": window.location.origin + '/' + window.location.pathname,
+    //     "referrerPolicy": "no-referrer-when-downgrade",
+    //     "body": `authenticity_token=${token}&workflow=.github%2Fworkflows%2F${name}&branch=main&show_workflow_tip=`,
+    //     "method": "POST",
+    //     "mode": "cors",
+    //     "credentials": "include"
+    // });
+}
+
+function groupBuildCheckbox() {
+    depthFirstSearch(actionList, function(el) {
+        if (checkWorkflow(el)) {
+
+        }
+    });
+}
+
+function checkBoxWorkflow() {
+    const checkbox = document.createElement('input');
+    checkbox.style.marginLeft = '0em';
+    checkbox.style.display = 'inline-block';
+    // checkbox.setAttribute('hidden', '');
+    checkbox.setAttribute('type', 'checkbox');
+
+    return checkbox;
 }
