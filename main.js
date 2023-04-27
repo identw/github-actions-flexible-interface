@@ -14,7 +14,6 @@ let WORKFLOW_PARAMS = {};
 // читаем html первого workflow и сделаем из нее шаблон клонируя елемент: const aaa = dom.cloneNode(true);, и удалив из него вторую form
 // вторую форму создаем динамически в зависимости от параметров во всех workflow. Пример второй формы глянь в 1.html. То есть нужно считать все типы параметров
 
-// верстка для li вешаем display: flex, для svg workflow и edit делаем witdh=20px, height=30px
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
 // https://turbo.hotwired.dev/reference/events
@@ -140,7 +139,15 @@ async function initWorkflowsList() {
             
             if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
                 li.classList.add('GHflexible-workflow');
-                li.prepend(workflowIcon());
+                const wIcon = workflowIcon();
+                wIcon.style.width = '15px';
+                wIcon.style.height = '20px';
+
+                const editIcon = renameElement();
+                editIcon.style.width = '15px';
+                editIcon.style.height = '20px';
+
+                li.prepend(wIcon);
 
                 let name = li.children[1].children[0].innerText;
                 li.setAttribute('data-ghflexible-name', name);
@@ -148,10 +155,16 @@ async function initWorkflowsList() {
                 li.setAttribute('data-ghflexible-type', 'workflow');
                 li.setAttribute('data-ghflexible-typeworkflow', 'manual');
                 li.setAttribute('data-ghflexible-element-indent', '0');
-                li.children[1].style.display = 'inline';
-                li.children[1].style.paddingLeft = '0em';
-                li.appendChild(renameElement());
-                li.appendChild(checkBoxWorkflow());
+                li.children[1].style.marginLeft = '0.3em';
+                li.style.display = 'flex';
+                li.children[1].style.flex = '1';
+                // li.children[1].style.paddingLeft = '0em';
+                li.children[1].setAttribute('class', '');
+                li.appendChild(editIcon);
+
+                const checkBox = checkBoxWorkflow();
+                checkBox.style.marginLeft = '2px';
+                li.appendChild(checkBox);
                 li.after(createDropableLine());
 
                 if (li.classList.contains('ActionList-item--navActive')) {
@@ -446,6 +459,14 @@ function enableEditElements() {
                     li.onmouseup = null;
                     // возвращаем старый стиль
                     li.style = Object.assign({}, saveLiStyle);
+                    li.style.listStyleType = 'none';
+
+                    if (checkWorkflow(li)) {
+                        li.children[1].style.marginLeft = '0.3em';
+                        li.style.display = 'flex';
+                        li.children[1].style.flex = '1';
+                    }
+
 
                     if (currentDroppable) {
                         
@@ -726,7 +747,7 @@ function renameElement() {
     let el = editButtonIcon();
     el.style.marginLeft = '0em';
     el.style.cursor = 'text';
-    el.style.display = 'inline-block';
+    // el.style.display = 'inline-block';
 
     el.onmousedown = function (event) {
         event.stopPropagation();
@@ -785,19 +806,20 @@ function renameButton(el, event) {
         input.value = '';
         span.innerText = text;
         p.setAttribute('data-ghflexible-rename', text);
-        moveActionListBlock();
 
         // снимаем блокировку и удаляем элемент
         input.remove(); 
         input.removeAttribute('data-ghflexible-event-lock');
         input = null;
+
+        moveActionListBlock();
     }
 
     input.onblur = function (event) {
         change(event);
     }
     
-    input.onchange =    function(event) {
+    input.onchange = function(event) {
         change(event);
     }
 
@@ -892,7 +914,7 @@ function getNearUlParent(element) {
 // folder
 function folderCreate(name, title = name) {
     // добавляем папку
-    let li = document.createElement('li');
+    const li = document.createElement('li');
     // выставляю такие-же аттрибуты как в gtihub
     li.setAttribute('tabindex', -1);
     li.setAttribute('data-test-selector', 'workflow-rendered');
@@ -908,12 +930,12 @@ function folderCreate(name, title = name) {
     li.setAttribute('class', 'GHflexible-dir GHflexible-dropable');
     li.style.listStyleType = 'none';
     
-    let span = document.createElement('span');
+    const span = document.createElement('span');
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
-    span.innerText = name;
+    span.innerText = title;
     span.style.marginRight = '0.8em';
 
-    let folderIcon = folderClosedIcon();
+    const folderIcon = folderClosedIcon();
     folderIcon.style.cursor = 'default';
 
     folderIcon.onmousedown = function(event) {
@@ -922,9 +944,10 @@ function folderCreate(name, title = name) {
         saveState();
     }
 
-    let ul = document.createElement('ul')
+    const ul = document.createElement('ul')
     ul.setAttribute('data-ghflexible-folder-list', 'true');
-    let dline = createDropableLine({first: true});
+    ul.setAttribute('class', 'ActionList ActionList--subGroup');
+    const dline = createDropableLine({first: true});
     dline.setAttribute('hidden', '');
     ul.appendChild(dline);
 
@@ -1052,12 +1075,22 @@ function moveActionListBlock() {
         }
     });
     const block = document.getElementsByClassName('PageLayout')[0];
-    let px = (maxLetters * 10 + 56);
+    let px = (maxLetters * 10 + 66);
     if (px < 256) {
         px = 256;
     }
-    px = px + 'px';
-    block.style.setProperty('--Layout-pane-width', px);
+    const pixels = px + 'px';
+    block.style.setProperty('--Layout-pane-width', pixels);
+
+    depthFirstSearch(actionList, function(el) {
+        const indent = el.getAttribute('data-ghflexible-element-indent');
+        const indentPixels = indent * 7;
+
+        if (checkFolder(el)) {
+            const width = el.children[1].getBoundingClientRect().width;
+            el.children[2].style.marginLeft = (px - 108 - indentPixels - width) + 'px';
+        }
+    });
 }
 
 function depthFirstSearch(element, callback) {
@@ -1429,7 +1462,7 @@ function groupBuildCheckbox() {
 function checkBoxWorkflow() {
     const checkbox = document.createElement('input');
     checkbox.style.marginLeft = '0em';
-    checkbox.style.display = 'inline-block';
+    // checkbox.style.display = 'inline-block';
     // checkbox.setAttribute('hidden', '');
     checkbox.setAttribute('type', 'checkbox');
 
