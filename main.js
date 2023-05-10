@@ -1,4 +1,5 @@
 let EDITABLE           = false;
+let CHECKBOX           = false;
 const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
 const TYPE_WORKFLOW    = 1;
 const TYPE_FOLDER      = 2;
@@ -161,10 +162,6 @@ async function initWorkflowsList() {
                 // li.children[1].style.paddingLeft = '0em';
                 li.children[1].setAttribute('class', '');
                 li.appendChild(editIcon);
-
-                const checkBox = checkBoxWorkflow();
-                checkBox.style.marginLeft = '2px';
-                li.appendChild(checkBox);
                 li.after(createDropableLine());
 
                 if (li.classList.contains('ActionList-item--navActive')) {
@@ -597,12 +594,45 @@ function globalButtons() {
     groupBuildIcon.style.cursor = 'pointer';
 
     groupBuildIcon.onclick = function(event) {
-        console.log('### create FROM ###');
-        const form = GROUP_BUILD_FORM;
-        const body = document.querySelector('body');
-        console.log(form);
-        console.log(body);
-        body.appendChild(form);
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+
+        if (CHECKBOX) {
+            CHECKBOX = false;
+            depthFirstSearch(actionList, function(el) {
+                if (checkWorkflow(el)) {
+                    const checkBox = el.children[3];
+                    checkBox.remove();
+                }
+            });
+            moveActionListBlock();
+        } else {
+            CHECKBOX = true;
+            const form = GROUP_BUILD_FORM;
+            const body = document.querySelector('body');
+            // console.log(form);
+            // console.log(body);
+            // body.appendChild(form);
+    
+            let checkBoxes = [];
+            depthFirstSearch(actionList, function(el) {
+                if (checkWorkflow(el)) {
+                    const checkBox = checkBoxWorkflow();
+    
+                    checkBox.onchange = function (event) {
+                        let flag = false;
+                        for (const i of checkBoxes) {
+                            if (i.checked) {
+                                flag = true;
+                                break;
+                            }
+                        }
+                    }
+                    checkBoxes.push(checkBox);
+                    el.appendChild(checkBox);
+                }
+            });
+            moveActionListBlock();
+        }
     }
 
     editIcon.onclick = function (event) {
@@ -1064,6 +1094,7 @@ function moveActionListBlock() {
 
     let actionList = document.querySelector(SELECTOR_ACTIONS);
     let maxLetters = 0;
+    let checkBox = false;
 
     depthFirstSearch(actionList, function(el) {
         let indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
@@ -1072,6 +1103,12 @@ function moveActionListBlock() {
 
         if (length > maxLetters) {
             maxLetters = length
+        }
+
+        if (checkWorkflow(el)) {
+            if (el.children[3]) {
+                checkBox = true;
+            }
         }
     });
     const block = document.getElementsByClassName('PageLayout')[0];
@@ -1088,7 +1125,11 @@ function moveActionListBlock() {
 
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
-            el.children[2].style.marginLeft = (px - 108 - indentPixels - width) + 'px';
+            let diff = 93;
+            if (checkBox) {
+                diff = 108;
+            }
+            el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
         }
     });
 }
@@ -1461,10 +1502,7 @@ function groupBuildCheckbox() {
 
 function checkBoxWorkflow() {
     const checkbox = document.createElement('input');
-    checkbox.style.marginLeft = '0em';
-    // checkbox.style.display = 'inline-block';
-    // checkbox.setAttribute('hidden', '');
+    checkbox.style.marginLeft = '2px';
     checkbox.setAttribute('type', 'checkbox');
-
     return checkbox;
 }
