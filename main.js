@@ -597,6 +597,7 @@ function globalButtons() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
 
         if (CHECKBOX) {
+
             CHECKBOX = false;
             depthFirstSearch(actionList, function(el) {
                 if (checkWorkflow(el)) {
@@ -605,13 +606,14 @@ function globalButtons() {
                 }
             });
             moveActionListBlock();
+            GROUP_BUILD_FORM.remove();
         } else {
             CHECKBOX = true;
-            const form = GROUP_BUILD_FORM;
+            // const form = GROUP_BUILD_FORM;
             const body = document.querySelector('body');
             // console.log(form);
             // console.log(body);
-            // body.appendChild(form);
+            body.appendChild(GROUP_BUILD_FORM);
     
             let checkBoxes = [];
             depthFirstSearch(actionList, function(el) {
@@ -1463,7 +1465,7 @@ async function getParams(el) {
         const body = manualBuildForm.querySelector('body');
 
         GROUP_BUILD_FORM = document.createElement('div');
-        GROUP_BUILD_FORM.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--ight mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large');
+        GROUP_BUILD_FORM.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--ight mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large GHGroupBuild');
         GROUP_BUILD_FORM.appendChild(body.children[0]);
         GROUP_BUILD_FORM.style.position = 'absolute';
         GROUP_BUILD_FORM.style.zIndex = 1000;
