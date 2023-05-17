@@ -54,13 +54,10 @@ async function init() {
 
     depthFirstSearch(actionList, async function(el) {
         if (checkWorkflow(el)) {
-            if (getTypeWorkflow(el) === 'manual')  {
-                await getParams(el);
-            }
+            await getParams(el);
         }
     });
 
-    console.log(WORKFLOW_PARAMS);
 }
 
 function checkRun() {
@@ -154,7 +151,6 @@ async function initWorkflowsList() {
                 li.setAttribute('data-ghflexible-name', name);
                 li.setAttribute('data-ghflexible-rename', name);
                 li.setAttribute('data-ghflexible-type', 'workflow');
-                li.setAttribute('data-ghflexible-typeworkflow', 'manual');
                 li.setAttribute('data-ghflexible-element-indent', '0');
                 li.children[1].style.marginLeft = '0.3em';
                 li.style.display = 'flex';
@@ -164,9 +160,6 @@ async function initWorkflowsList() {
                 li.appendChild(editIcon);
                 li.after(createDropableLine());
 
-                if (li.classList.contains('ActionList-item--navActive')) {
-                    li.setAttribute('data-ghflexible-typeworkflow', 'auto');
-                }
             }
 
             if (!li.classList.contains('GHflexible-dropable')) {
@@ -909,10 +902,6 @@ function checkWorkflow(element) {
     return false;
 }
 
-function getTypeWorkflow(element) {
-    return element.getAttribute('data-ghflexible-typeworkflow')
-}
-
 function checkFolderParent(element) {
     let saveElement = element;
     while(!checkRootFolder(element)) {
@@ -1413,10 +1402,23 @@ function generateGroupBuildForm(checkBoxes) {
     const form = document.createElement('form');
     form.setAttribute('data-turbo', 'false');
     form.setAttribute('accept-charset', 'UTF-8');
+    console.log(uniqWorkflows);
 
     for (const k in uniqWorkflows) {
-        const v = uniqWorkflows[k];
         const params = WORKFLOW_PARAMS[k];
+
+        const label = document.createElement('label');
+        label.classList.add('color-fg-default');
+        // label.classList.add('text-mono');
+        label.classList.add('f8');
+        label.title = uniqWorkflows[k].names + ':';
+        label.innerText = uniqWorkflows[k].names + ':';
+        if (uniqWorkflows[k].names.length > 3) {
+            label.innerText = uniqWorkflows[k].names[0] + ',' + uniqWorkflows[k].names[1] + ',...' + ':';
+        }
+        if (params.length > 0) {
+            form.appendChild(label);
+        }
 
         for (const p of params) {
             const div = document.createElement('div');
@@ -1612,7 +1614,6 @@ async function getParams(el) {
     });
 
     el.setAttribute('data-ghflexible-run-token', token);
-    
     manualBuildForm.querySelectorAll('div.form-group.mt-1.mb-2').forEach((i)  => {
         WORKFLOW_PARAMS[name].push(getParam(i));
     });
