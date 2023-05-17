@@ -224,7 +224,7 @@ function enableEditElements() {
                     event.preventDefault();
                     removeConextMenus();
 
-                    let div = document.createElement('div');
+                    const div = document.createElement('div');
                     div.classList.add('GHflexible-contextmenu');
                     div.style.position = 'absolute';
                     div.style.zIndex = 1000;
@@ -235,10 +235,14 @@ function enableEditElements() {
                     div.style.borderColor = '#d6d9dc';
                     div.style.borderWidth = '1px';
                     div.style.borderRadius = '0.5em';
-                    div.style.left = event.clientX + 'px';
-                    div.style.top = event.clientY + 'px';
+                    // console.log(li.getBoundingClientRect());
+                    // console.log( );
+                    // console.log(event.clientY);
+                    // console.log(event);
+                    div.style.left = event.pageX + 'px';
+                    div.style.top = event.pageY + 'px';
 
-                    let p = document.createElement('p');
+                    const p = document.createElement('p');
                     p.classList.add('GHflexible-contextmenu');
                     p.style.marginLeft = '0.45em';
                     p.style.marginRight = '0.45em';
