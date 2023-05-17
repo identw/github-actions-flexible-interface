@@ -597,7 +597,6 @@ function globalButtons() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
 
         if (CHECKBOX) {
-
             CHECKBOX = false;
             depthFirstSearch(actionList, function(el) {
                 if (checkWorkflow(el)) {
@@ -607,6 +606,7 @@ function globalButtons() {
             });
             moveActionListBlock();
             GROUP_BUILD_FORM.remove();
+
         } else {
             CHECKBOX = true;
             // const form = GROUP_BUILD_FORM;
@@ -619,15 +619,13 @@ function globalButtons() {
             depthFirstSearch(actionList, function(el) {
                 if (checkWorkflow(el)) {
                     const checkBox = checkBoxWorkflow();
-    
                     checkBox.onchange = function (event) {
-                        let flag = false;
-                        for (const i of checkBoxes) {
-                            if (i.checked) {
-                                flag = true;
-                                break;
-                            }
+                        const formParams = generateGroupBuildForm(checkBoxes);
+                        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+                        if (div.children[1]) {
+                            div.children[1].remove();
                         }
+                        div.appendChild(formParams);
                     }
                     checkBoxes.push(checkBox);
                     el.appendChild(checkBox);
@@ -1346,6 +1344,180 @@ function removeConextMenus() {
     });
 }
 
+function arraysEqual(a, b) {
+    if (a === b) return true;
+    if (a == null || b == null) return false;
+    if (a.length !== b.length) return false;
+
+    // If you don't care about the order of the elements inside
+    // the array, you should sort both arrays here.
+    // Please note that calling sort on an array will modify that array.
+    // you might want to clone your array first.
+
+    for (var i = 0; i < a.length; ++i) {
+        if (a[i] !== b[i]) return false;
+    }
+    return true;
+}
+
+function groupBuildCheckbox() {
+    depthFirstSearch(actionList, function(el) {
+        if (checkWorkflow(el)) {
+
+        }
+    });
+}
+
+function checkBoxWorkflow() {
+    const checkbox = document.createElement('input');
+    checkbox.style.marginLeft = '2px';
+    checkbox.setAttribute('type', 'checkbox');
+    return checkbox;
+}
+
+function generateGroupBuildForm(checkBoxes) {
+
+    // проверяем есть ли хоть один выбранный workflow. Если да, то oneElementChecked будет равен true
+    // А также составляем список выбранных workflows и добавляем их в массив checkedElements
+    let checkedWorkflows = [];
+    for (const i of checkBoxes) {
+        if (i.checked) {
+            let name = i.parentElement.children[1].getAttribute('href').split('/');
+            name = name[name.length - 1];
+            checkedWorkflows.push(name);
+        }
+    }
+
+    // определяем в каких workflows есть одинаковые параметры
+    let uniqWorkflows = {};
+    let added = {};
+    for (let i = 0; i < checkedWorkflows.length; i++) {
+        const iParams = WORKFLOW_PARAMS[checkedWorkflows[i]];
+        if (!added[i]) {
+            uniqWorkflows[checkedWorkflows[i]] = {
+                names: [checkedWorkflows[i]]
+            };
+        }
+
+        for (let j = i + 1; j < checkedWorkflows.length; j++) {
+            if (added[j]) { continue};
+
+            const jParams = WORKFLOW_PARAMS[checkedWorkflows[j]];
+            if (isEqualParams(iParams, jParams)) {
+                uniqWorkflows[checkedWorkflows[i]].names.push(checkedWorkflows[j]);
+                added[j] = true;
+            }
+        }
+    }
+
+    const form = document.createElement('form');
+    form.setAttribute('data-turbo', 'false');
+    form.setAttribute('accept-charset', 'UTF-8');
+
+    for (const k in uniqWorkflows) {
+        const v = uniqWorkflows[k];
+        const params = WORKFLOW_PARAMS[k];
+
+        for (const p of params) {
+            const div = document.createElement('div');
+            div.classList.add('form-group');
+            div.classList.add('mt-1');
+            div.classList.add('mb-2');
+            if (p.required) {
+                div.classList.add('required');
+            }
+
+            form.appendChild(div);
+
+            if (p.type === 'select') {
+                const divParamName = document.createElement('div');
+                divParamName.classList.add('form-group-header');
+                div.appendChild(divParamName);
+
+                const label = document.createElement('label');
+                label.classList.add('color-fg-default');
+                label.classList.add('text-mono');
+                label.classList.add('f6');
+                label.innerText = p.name;
+                divParamName.appendChild(label);
+
+                const divFormGroup = document.createElement('div');
+                divFormGroup.classList.add('form-group-body');
+                div.appendChild(divFormGroup);
+
+                const select = document.createElement('select');
+                select.classList.add('form-select');
+                select.classList.add('form-control');
+                select.classList.add('select-sm');
+                select.classList.add('input-contrast');
+                select.classList.add('width-full');
+                select.setAttribute('value', p.value);
+                divFormGroup.appendChild(select);
+
+                for (const v of p.selectValues) {
+                    const option = document.createElement('option');
+                    option.setAttribute('value', v);
+                    option.innerText = v;
+                    select.appendChild(option);
+
+                }
+            }
+
+            if (p.type === 'string') {
+                const divParamName = document.createElement('div');
+                divParamName.classList.add('form-group-header');
+                div.appendChild(divParamName);
+
+                const label = document.createElement('label');
+                label.classList.add('color-fg-default');
+                label.classList.add('text-mono');
+                label.classList.add('f6');
+                label.innerText = p.name;
+                divParamName.appendChild(label);
+
+                const divFormGroup = document.createElement('div');
+                divFormGroup.classList.add('form-group-body');
+                div.appendChild(divFormGroup);
+
+                const input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('input-contrast');
+                input.classList.add('input-sm');
+                input.setAttribute('type', 'text');
+                input.setAttribute('value', p.value);
+                divFormGroup.appendChild(input);
+            }
+
+            if (p.type === 'boolean') {
+                const divParamName = document.createElement('div');
+                divParamName.classList.add('form-group-header');
+                div.appendChild(divParamName);
+
+                const label = document.createElement('label');
+                label.classList.add('color-fg-default');
+                label.classList.add('text-mono');
+                label.classList.add('f6');
+                label.innerText = p.name;
+                divParamName.appendChild(label);
+
+                const divFormGroup = document.createElement('div');
+                divFormGroup.classList.add('form-group-body');
+                div.appendChild(divFormGroup);
+
+                const input = document.createElement('input');
+                input.classList.add('form-control');
+                input.classList.add('input-contrast');
+                input.classList.add('input-sm');
+                input.setAttribute('type', 'text');
+                input.setAttribute('value', p.value);
+                divFormGroup.appendChild(input);
+            }
+        }
+    }
+
+    return form;
+}
+
 function getParam(el) {
     if (
         !el.classList.contains('form-group') ||
@@ -1356,6 +1528,11 @@ function getParam(el) {
     }
 
     const div = el.querySelector('div.form-group-header');
+    let required = false;
+    if (el.classList.contains('required')) {
+        required = true;
+    }
+
     let name = '';
     if (div) {
         name = div.children[0].innerText.replace(/\s/g, '');
@@ -1394,25 +1571,11 @@ function getParam(el) {
         name: name,
         type: type,
         value: value,
+        required: required,
         selectValues: selectValues,
     }
 }
 
-function arraysEqual(a, b) {
-    if (a === b) return true;
-    if (a == null || b == null) return false;
-    if (a.length !== b.length) return false;
-
-    // If you don't care about the order of the elements inside
-    // the array, you should sort both arrays here.
-    // Please note that calling sort on an array will modify that array.
-    // you might want to clone your array first.
-
-    for (var i = 0; i < a.length; ++i) {
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
-}
 
 async function getParams(el) {
     const l = window.location.pathname.split('/');
@@ -1494,17 +1657,27 @@ async function getParams(el) {
     // });
 }
 
-function groupBuildCheckbox() {
-    depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el)) {
+function isEqualParam(aParam, bParam) {
+    if ( aParam.name === bParam.name && aParam.type === bParam.type && aParam.value === bParam.value && aParam.required === bParam.required && arraysEqual(aParam.selectValues, bParam.selectValues)) {
+        return true;
+    } else {
+        return false;
+    }
+}
 
+function isEqualParams(aParams, bParams) {
+    if (aParams.length != bParams.length) { return false; }
+
+    for (const i of aParams) {
+        let flag = false;
+        for (const j of bParams) {
+            if (isEqualParam(i, j)) {
+                flag = true;
+            }
         }
-    });
+        if (!flag) { return false; }
+    }
+
+    return true;
 }
 
-function checkBoxWorkflow() {
-    const checkbox = document.createElement('input');
-    checkbox.style.marginLeft = '2px';
-    checkbox.setAttribute('type', 'checkbox');
-    return checkbox;
-}
