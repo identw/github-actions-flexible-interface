@@ -10,16 +10,39 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO:
-// когда нажимаем на кнопку group build появляется возможность ставить checkbox'ы напротив workflow с поддержкой ручного запуска, и в зависимости от того как workflow выбраны, формируем форму для запуска билда, общие параметры выносим вверх, уникальные для задачи вниз.
-// А для того чтобы это всё делать, нужно изначално считать все параметры у всех workflow. То есть вместо PARAMS должна быть WORKFLOW_PARAMS в котором будут хранится все workflow с параметрами
-// читаем html первого workflow и сделаем из нее шаблон клонируя елемент: const aaa = dom.cloneNode(true);, и удалив из него вторую form
-// вторую форму создаем динамически в зависимости от параметров во всех workflow. Пример второй формы глянь в 1.html. То есть нужно считать все типы параметров
+// 24 строчка, нужно сделать ожидание того когда появится вторая форма в GROUP_BUILD_FORM, в стиле как это реализовано в waitClickShowWorkflows. Причем нужно проверять сгенерана эта форма с помощью generateGroupBuildForm или же добавилась оригинальным github'ом
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
 // https://turbo.hotwired.dev/reference/events
 window.addEventListener('turbo:load', async function () {
     await init();
+});
+
+
+// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
+window.addEventListener('submit', function(e) {
+    const el = e.target;
+
+    if (el.getAttribute('data-ghflexible-form') === 'true' ) {
+        console.log('LALKA');
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        let checkBoxes   = [];
+    
+        depthFirstSearch(actionList, function(el) {
+            if (checkWorkflow(el)) {
+                const checkBox = checkBoxWorkflow();
+                checkBoxes.push(checkBox);
+            }
+        });
+    
+        const formParams = generateGroupBuildForm(checkBoxes);
+        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+        if (div.children[1]) {
+            div.children[1].remove();
+        }
+        div.appendChild(formParams);
+    }
 });
 
 // (async () => {
@@ -1406,7 +1429,6 @@ function generateGroupBuildForm(checkBoxes) {
     const form = document.createElement('form');
     form.setAttribute('data-turbo', 'false');
     form.setAttribute('accept-charset', 'UTF-8');
-    console.log(uniqWorkflows);
 
     for (const k in uniqWorkflows) {
         const params = WORKFLOW_PARAMS[k];
@@ -1521,6 +1543,22 @@ function generateGroupBuildForm(checkBoxes) {
         }
     }
 
+    const button = document.createElement('button');
+    button.classList.add('btn');
+    button.classList.add('btn-primary');
+    button.classList.add('btn-sm');
+    button.classList.add('t-2');
+    button.setAttribute('type', 'submit');
+    button.setAttribute('autofocus', '');
+    button.innerHTML = 'Run workflow';
+    form.appendChild(button);
+
+    form.onsubmit = function(event) {
+        event.preventDefault();
+        console.log('### RUN WORKFLOWS');
+        console.log(event);
+    }
+
     return form;
 }
 
@@ -1582,6 +1620,11 @@ function getParam(el) {
     }
 }
 
+function uriWorkflows() {
+    const l = window.location.pathname.split('/');
+    return '/' + l[1] + '/' + l[2] + '/actions/manual';
+}
+
 
 async function getParams(el) {
     const l = window.location.pathname.split('/');
@@ -1623,11 +1666,14 @@ async function getParams(el) {
     });
 
     // GROUP_BUILD_FORM - записываем первую часть формы 
-    if (!GROUP_BUILD_FORM) {
+    if (!GROUP_BUILD_FORM && WORKFLOW_PARAMS[name].length > 0) {
         manualBuildForm.querySelectorAll('form').forEach((i)  => {
             const method = i.getAttribute('method');
             if (method == 'post') {
                 i.remove();
+            }
+            if (method == 'get') {
+                i.setAttribute('data-ghflexible-form', 'true');
             }
         });
         const body = manualBuildForm.querySelector('body');
@@ -1639,6 +1685,7 @@ async function getParams(el) {
         GROUP_BUILD_FORM.style.zIndex = 1000;
         GROUP_BUILD_FORM.style.top = '100px';
         GROUP_BUILD_FORM.style.left = '100px';
+ 
     }
     
     // await fetch(urlWorkflowRun, {
