@@ -20,30 +20,7 @@ window.addEventListener('turbo:load', async function () {
 });
 
 
-// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
-window.addEventListener('submit', function(e) {
-    const el = e.target;
-
-    if (el.getAttribute('data-ghflexible-form') === 'true' ) {
-        console.log('LALKA');
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
-        let checkBoxes   = [];
-    
-        depthFirstSearch(actionList, function(el) {
-            if (checkWorkflow(el)) {
-                const checkBox = checkBoxWorkflow();
-                checkBoxes.push(checkBox);
-            }
-        });
-    
-        const formParams = generateGroupBuildForm(checkBoxes);
-        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
-        if (div.children[1]) {
-            div.children[1].remove();
-        }
-        div.appendChild(formParams);
-    }
-});
+window.addEventListener('submit', onSubmit);
 
 // (async () => {
 //     await init();
@@ -151,6 +128,27 @@ async function waitClickShowWorkflows() {
     }
 }
 
+async function waitGroupBuildForm(form) {
+    
+    for (let i = 0; i < 100000; i++) {
+        await promiseSetTimeout(10);
+        if (form.querySelectorAll('form').length === 1 || form.querySelectorAll('form')[1].getAttribute('data-ghflexible-form') === 'true') {
+            continue;
+        }
+       
+        form.querySelectorAll('form').forEach((i)  => {
+            const method = i.getAttribute('method');
+            if (method == 'post') {
+                i.remove();
+            }
+            if (method == 'get') {
+                i.setAttribute('data-ghflexible-form', 'true');
+            }
+        });
+        return;
+    }
+}
+
 async function initWorkflowsList() {
     let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
 
@@ -191,6 +189,30 @@ async function initWorkflowsList() {
         }
     }
     moveActionListBlock();
+}
+
+// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
+async function onSubmit(e) {
+    const el = e.target;
+
+    if (el.getAttribute('data-ghflexible-form') === 'true' ) {
+        await waitGroupBuildForm(GROUP_BUILD_FORM);
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        let checkBoxes   = [];
+    
+        depthFirstSearch(actionList, function(el) {
+            if (checkWorkflow(el)) {
+                checkBoxes.push(el.children[3]);
+            }
+        });
+
+        const formParams = generateGroupBuildForm(checkBoxes);
+        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+        if (div.children[1]) {
+            div.children[1].remove();
+        }
+        div.appendChild(formParams);
+    }
 }
 
 function disableEditElements() {
@@ -1392,7 +1414,6 @@ function checkBoxWorkflow() {
 }
 
 function generateGroupBuildForm(checkBoxes) {
-
     // проверяем есть ли хоть один выбранный workflow. Если да, то oneElementChecked будет равен true
     // А также составляем список выбранных workflows и добавляем их в массив checkedElements
     let checkedWorkflows = [];
@@ -1429,6 +1450,7 @@ function generateGroupBuildForm(checkBoxes) {
     const form = document.createElement('form');
     form.setAttribute('data-turbo', 'false');
     form.setAttribute('accept-charset', 'UTF-8');
+    form.setAttribute('data-ghflexible-form', 'true');
 
     for (const k in uniqWorkflows) {
         const params = WORKFLOW_PARAMS[k];
@@ -1543,15 +1565,17 @@ function generateGroupBuildForm(checkBoxes) {
         }
     }
 
-    const button = document.createElement('button');
-    button.classList.add('btn');
-    button.classList.add('btn-primary');
-    button.classList.add('btn-sm');
-    button.classList.add('t-2');
-    button.setAttribute('type', 'submit');
-    button.setAttribute('autofocus', '');
-    button.innerHTML = 'Run workflow';
-    form.appendChild(button);
+    if (checkedWorkflows.length > 0) {
+        const button = document.createElement('button');
+        button.classList.add('btn');
+        button.classList.add('btn-primary');
+        button.classList.add('btn-sm');
+        button.classList.add('t-2');
+        button.setAttribute('type', 'submit');
+        button.setAttribute('autofocus', '');
+        button.innerHTML = 'Run workflows';
+        form.appendChild(button);
+    }
 
     form.onsubmit = function(event) {
         event.preventDefault();
