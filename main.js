@@ -10,10 +10,10 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// 1) в workflow которые без поддержки dispatch добавлять  checkbox, но сделать его не активным, чтобы выровнять верстку (инчае крайне затратно)
 // 2) проверка required параметров перед запуском
 // 3) передвинуть группоевое меню 
 // 4) сохранение параметров после перестройки меню группового билда
+// 5) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -212,7 +212,7 @@ function reloadGroupBuildForm() {
     let checkBoxes   = [];
 
     depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el) && checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
+        if (checkWorkflow(el)) {
             checkBoxes.push(el.children[3]);
         }
     });
@@ -624,7 +624,7 @@ function deleteGroupBuild() {
     CHECKBOX = false;
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
+        if (checkWorkflow(el)) {
             const checkBox = el.children[3];
             checkBox.checked = false;
             checkBoxes.push(checkBox);
@@ -680,8 +680,12 @@ function globalButtons() {
     
             let checkBoxes = [];
             depthFirstSearch(actionList, function(el) {
-                if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
+                if (checkWorkflow(el)) {
                     const checkBox = checkBoxWorkflow();
+                    if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
+                        checkBox.disabled = true;
+                    }
+                    
                     checkBox.onchange = function (event) {
                         const formParams = generateGroupBuildForm(checkBoxes);
                         const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
@@ -1164,7 +1168,7 @@ function moveActionListBlock() {
             maxLetters = length
         }
 
-        if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
+        if (checkWorkflow(el)) {
             if (el.children[3]) {
                 checkBox = true;
             }
@@ -1234,7 +1238,7 @@ function getSaveKey() {
 }
 
 function resetState() {
-    const c = confirm("Are you sure to reset?")
+    const c = confirm("Are you sure you want to reset the settings? This will delete all folders and reset all workflows to their original state.")
     if (c === true) {
         console.log(getSaveKey());
         localStorage.removeItem(getSaveKey());
