@@ -9,8 +9,11 @@ const TYPE_ROOT        = 3;
 let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
-//  TODO:
-// 1) и
+//  TODO: 
+// 1) в workflow которые без поддержки dispatch добавлять  checkbox, но сделать его не активным, чтобы выровнять верстку (инчае крайне затратно)
+// 2) проверка required параметров перед запуском
+// 3) передвинуть группоевое меню 
+// 4) сохранение параметров после перестройки меню группового билда
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -20,15 +23,14 @@ window.addEventListener('turbo:load', async function () {
 });
 
 
-window.addEventListener('submit', onSubmit);
-
 // (async () => {
 //     await init();
 // })();
 
 async function init() {
     if (!checkRun()) { 
-        document.removeEventListener('click', handlerRemoveContextMenu);
+        document.removeEventListener('click', onClick);
+        window.removeEventListener('submit', onSubmit);
         window.onbeforeunload = null;
         console.log("remove handlers");
         return;
@@ -36,7 +38,9 @@ async function init() {
 
     console.log('Github-flexible init...');
     await waitClickShowWorkflows();
-    document.addEventListener('click', handlerRemoveContextMenu);
+    document.addEventListener('click', onClick);
+    window.addEventListener('submit', onSubmit);
+
     
     window.onbeforeunload = function() {
         disableEditElements();
@@ -61,6 +65,22 @@ async function init() {
 
 }
 
+// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
+async function onSubmit(e) {
+    const el = e.target;
+
+    if (el.getAttribute('data-ghflexible-form') === 'true' ) {
+        await waitGroupBuildForm(GROUP_BUILD_FORM);
+        reloadGroupBuildForm();
+    }
+}
+
+function onClick(event) {
+    if (!event.target.classList.contains('GHflexible-contextmenu')) {
+        removeConextMenus();
+    }
+}
+
 function checkRun() {
     // console.log(window.location.pathname);
     const location = window.location.pathname.split('/');
@@ -72,12 +92,6 @@ function checkRun() {
         flag = true;
     }
     return flag;
-}
-
-function handlerRemoveContextMenu(event) {
-    if (!event.target.classList.contains('GHflexible-contextmenu')) {
-        removeConextMenus();
-    }
 }
 
 function searchShowWorkflows() {
@@ -192,15 +206,6 @@ async function initWorkflowsList() {
     moveActionListBlock();
 }
 
-// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
-async function onSubmit(e) {
-    const el = e.target;
-
-    if (el.getAttribute('data-ghflexible-form') === 'true' ) {
-        await waitGroupBuildForm(GROUP_BUILD_FORM);
-        reloadGroupBuildForm();
-    }
-}
 
 function reloadGroupBuildForm() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
@@ -1184,6 +1189,11 @@ function moveActionListBlock() {
                 diff = 108;
             }
             el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
+            // console.log(el.getAttribute('data-ghflexible-name'));
+            // console.log(`px: ${px}`);
+            // console.log(`diff: ${diff}`);
+            // console.log(`indentPixels: ${indentPixels}`);
+            // console.log(`width: ${width}`);
         }
     });
 }
