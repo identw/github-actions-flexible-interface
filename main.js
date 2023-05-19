@@ -10,7 +10,9 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// 1) удаление меню группового билда при нажатии в другие места
+// -2) если быстро жмакать можно случайно сбросить папки
+// -1) после добавления папки не вызывается moveBlock
+// 1) удаление меню группового билда при нажатии в другие места, нужно исправить баг с нажатием на элементы меню выбора веток
 // 2) сохранение параметров после перестройки меню группового билда
 // 3) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
 // 4) сборка webppack, подключить babel, разобраться с source map
@@ -85,6 +87,10 @@ function onClick(event) {
     if (!event.target.classList.contains('GHflexible-contextmenu')) {
         removeConextMenus();
     }
+
+    if (!event.target.classList.contains('GHflexible-click-group-build')) {
+        deleteGroupBuild();
+    }
 }
 
 function checkRun() {
@@ -95,6 +101,9 @@ function checkRun() {
         flag = true;
     }
     if (location[3] === 'actions' && location[4] === 'workflows' && location.length === 6 ) {
+        flag = true;
+    }
+    if (location[3] === 'actions' &&  location[4] === 'caches' && location.length === 5 ) {
         flag = true;
     }
     return flag;
@@ -626,8 +635,12 @@ function getIndexInChildren(parent, element) {
 }
 
 function deleteGroupBuild() {
+    console.log(`func: deleteGroupBuild`);
+    if (!CHECKBOX) {
+        return;
+    }
+    console.log(`func: deleteGroupBuild run`);
     const actionList = document.querySelector(SELECTOR_ACTIONS);
-    CHECKBOX = false;
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
@@ -643,6 +656,7 @@ function deleteGroupBuild() {
     }
     moveActionListBlock();
     GROUP_BUILD_FORM.remove();
+    CHECKBOX = false;
 }
 
 function globalButtons() {
@@ -670,6 +684,7 @@ function globalButtons() {
     groupBuildIcon.style.width = "20px";
     groupBuildIcon.style.height = "20px";
     groupBuildIcon.style.cursor = 'pointer';
+    addClassToChilds(groupBuildIcon, 'GHflexible-click-group-build')
 
     groupBuildIcon.onclick = function(event) {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
@@ -678,20 +693,17 @@ function globalButtons() {
             deleteGroupBuild();
         } else {
             CHECKBOX = true;
-            // const form = GROUP_BUILD_FORM;
             const body = document.querySelector('body');
-            // console.log(form);
-            // console.log(body);
             body.appendChild(GROUP_BUILD_FORM);
             const located = document.querySelector('div.PageLayout-region.PageLayout-content').getBoundingClientRect();
             GROUP_BUILD_FORM.style.top = located.top + window.scrollY + 'px';
             GROUP_BUILD_FORM.style.left = located.left + window.scrollX + 'px';
- 
     
             let checkBoxes = [];
             depthFirstSearch(actionList, function(el) {
                 if (checkWorkflow(el)) {
                     const checkBox = checkBoxWorkflow();
+                    checkBox.classList.add('GHflexible-click-group-build');
                     if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
                         checkBox.disabled = true;
                     }
@@ -1707,6 +1719,8 @@ function generateGroupBuildForm(checkBoxes) {
         
     }
 
+    addClassToChilds(form, 'GHflexible-click-group-build');
+
     return form;
 }
 
@@ -1851,6 +1865,7 @@ async function getParams(el) {
         GROUP_BUILD_FORM.style.position = 'absolute';
         GROUP_BUILD_FORM.style.zIndex = 1000;
         GROUP_BUILD_FORM.classList.remove('right-0');
+        addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
     }
     
 }
@@ -1879,3 +1894,21 @@ function isEqualParams(aParams, bParams) {
     return true;
 }
 
+
+function addClassToChilds(element, className) {
+    // Проверяем, существует ли уже класс на элементе
+    if (!element.classList.contains(className)) {
+      // Добавляем класс к текущему элементу
+      element.classList.add(className);
+    }
+  
+    // Получаем все дочерние элементы
+    var childElements = element.children;
+  
+    // Перебираем дочерние элементы и вызываем функцию рекурсивно
+    for (var i = 0; i < childElements.length; i++) {
+      var childElement = childElements[i];
+      addClassToChilds(childElement, className);
+    }
+  }
+  
