@@ -10,10 +10,10 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// 2) проверка required параметров перед запуском
-// 3) передвинуть группоевое меню 
-// 4) сохранение параметров после перестройки меню группового билда
-// 5) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
+// 1) передвинуть группоеое меню 
+// 2) удаление меню группового билда при нажатии в другие места
+// 3) сохранение параметров после перестройки меню группового билда
+// 4) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -1508,6 +1508,7 @@ function generateGroupBuildForm(checkBoxes) {
             if (p.required) {
                 div.classList.add('required');
             }
+            
 
             form.appendChild(div);
 
@@ -1537,6 +1538,10 @@ function generateGroupBuildForm(checkBoxes) {
                 select.setAttribute('id', 'params');
                 select.setAttribute('workflow', k);
                 select.setAttribute('name', p.input);
+                if (p.required) {
+                    select.setAttribute('required', p.required);
+                }
+                select.setAttribute('title', p.name);
                 divFormGroup.appendChild(select);
 
                 for (const v of p.selectValues) {
@@ -1544,7 +1549,6 @@ function generateGroupBuildForm(checkBoxes) {
                     option.setAttribute('value', v);
                     option.innerText = v;
                     select.appendChild(option);
-
                 }
             }
 
@@ -1573,6 +1577,11 @@ function generateGroupBuildForm(checkBoxes) {
                 input.setAttribute('id', 'params');
                 input.setAttribute('workflow', k);
                 input.setAttribute('name', p.input);
+                if (p.required) {
+                    input.setAttribute('required', p.required);
+                }
+                
+                input.setAttribute('title', p.name);
                 divFormGroup.appendChild(input);
             }
 
@@ -1599,6 +1608,7 @@ function generateGroupBuildForm(checkBoxes) {
                 input.setAttribute('id', 'params');
                 input.setAttribute('workflow', k);
                 input.setAttribute('name', p.input);
+                input.setAttribute('title', p.name);
                 label.appendChild(input);
             }
         }
@@ -1640,6 +1650,9 @@ function generateGroupBuildForm(checkBoxes) {
                             v = i.checked;
                         }
                         body[i.getAttribute('name')] = v;
+                        // if (v === '' && i.getAttribute('required') === 'true') {
+                        //     return alert(`Workflows ${ws} must required param: ${i.getAttribute('title')}`)
+                        // }
                     }
                 });
 
@@ -1676,6 +1689,12 @@ function generateGroupBuildForm(checkBoxes) {
         }
 
         deleteGroupBuild();
+        if ( window.location.href === (window.origin + uriWorkflows())) {
+            window.location.reload();
+        } else {
+            window.location.href = window.origin + uriWorkflows();
+        }
+        
     }
 
     return form;
@@ -1748,7 +1767,7 @@ function getParam(el) {
 
 function uriWorkflows() {
     const l = window.location.pathname.split('/');
-    return '/' + l[1] + '/' + l[2] + '/actions/manual';
+    return '/' + l[1] + '/' + l[2] + '/actions';
 }
 
 
