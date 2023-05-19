@@ -10,10 +10,16 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// 1) передвинуть группоеое меню 
-// 2) удаление меню группового билда при нажатии в другие места
-// 3) сохранение параметров после перестройки меню группового билда
-// 4) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
+// 1) удаление меню группового билда при нажатии в другие места
+// 2) сохранение параметров после перестройки меню группового билда
+// 3) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
+// 4) сборка webppack, подключить babel, разобраться с source map
+// 5) выбрать картинку, логотип, название и что писать в html
+// 6) зареилзить в google store
+// 7) протетсить в safari, поправить баги
+// 8) зарелизить в safari store
+// 9) протестить в mozilla, поправить баги
+// 10) зарелизить в mozilla store
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -677,6 +683,12 @@ function globalButtons() {
             // console.log(form);
             // console.log(body);
             body.appendChild(GROUP_BUILD_FORM);
+            const located = document.querySelector('div.PageLayout-region.PageLayout-content').getBoundingClientRect();
+            GROUP_BUILD_FORM.style.top = located.top + 'px';
+            GROUP_BUILD_FORM.style.left = located.left + 'px';
+            console.log(located);
+            console.log(GROUP_BUILD_FORM.getBoundingClientRect());
+ 
     
             let checkBoxes = [];
             depthFirstSearch(actionList, function(el) {
@@ -1834,14 +1846,13 @@ async function getParams(el) {
         });
         const body = manualBuildForm.querySelector('body');
 
+
         GROUP_BUILD_FORM = document.createElement('div');
         GROUP_BUILD_FORM.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--ight mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large GHGroupBuild');
         GROUP_BUILD_FORM.appendChild(body.children[0]);
         GROUP_BUILD_FORM.style.position = 'absolute';
         GROUP_BUILD_FORM.style.zIndex = 1000;
-        GROUP_BUILD_FORM.style.top = '100px';
-        GROUP_BUILD_FORM.style.left = '100px';
- 
+        GROUP_BUILD_FORM.classList.remove('right-0');
     }
     
 }
