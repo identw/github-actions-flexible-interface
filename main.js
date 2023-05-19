@@ -10,7 +10,7 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO:
-// Не добавлять checkbox'ы в workflow которые не поддерживают dispatch. А также не добавлять их в WORKFLOW_PARAMS;
+// 1) и
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -57,6 +57,7 @@ async function init() {
             await getParams(el);
         }
     });
+    console.log(WORKFLOW_PARAMS);
 
 }
 
@@ -206,7 +207,7 @@ function reloadGroupBuildForm() {
     let checkBoxes   = [];
 
     depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el)) {
+        if (checkWorkflow(el) && checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
             checkBoxes.push(el.children[3]);
         }
     });
@@ -618,7 +619,7 @@ function deleteGroupBuild() {
     CHECKBOX = false;
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el)) {
+        if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
             const checkBox = el.children[3];
             checkBox.checked = false;
             checkBoxes.push(checkBox);
@@ -674,7 +675,7 @@ function globalButtons() {
     
             let checkBoxes = [];
             depthFirstSearch(actionList, function(el) {
-                if (checkWorkflow(el)) {
+                if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
                     const checkBox = checkBoxWorkflow();
                     checkBox.onchange = function (event) {
                         const formParams = generateGroupBuildForm(checkBoxes);
@@ -1158,7 +1159,7 @@ function moveActionListBlock() {
             maxLetters = length
         }
 
-        if (checkWorkflow(el)) {
+        if (checkWorkflow(el) && el.getAttribute('data-ghflexible-checkbox') === 'true') {
             if (el.children[3]) {
                 checkBox = true;
             }
@@ -1278,6 +1279,7 @@ function moveDomElementsToState(domElement, stateElement) {
             name: workflowGetName(domElement),
             title: workflowGetTitle(domElement),
             type: TYPE_WORKFLOW,
+            checkbox: domElement.getAttribute('data-ghflexible-checkbox'),
         };
         stateElement.list.push(workflow);
     }
@@ -1338,6 +1340,7 @@ function moveStateToDomElements(stateElement, domElement) {
         const span = sel.children[1].children[0];
         span.innerText = stateElement.title;
         sel.setAttribute('data-ghflexible-rename', stateElement.title);
+        sel.setAttribute('data-ghflexible-checkbox', stateElement.checkbox);
         
         // после того как  найденный элемент `sel` был перенесен, индекс следующих всех элементов понизился на единицу, поэтому actionList.children[index] ссылается на следующий элемент. Cледующий элемент всегда технический элемент dropLine, его переносим тоже.
         if (checkFolder(domElement)) {
@@ -1738,12 +1741,8 @@ function uriWorkflows() {
 async function getParams(el) {
     const l = window.location.pathname.split('/');
     const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
-
     const name = workflowGetUrlName(el);
-    WORKFLOW_PARAMS[name] = {
-        token: '',
-        params: [],
-    }
+    el.setAttribute('data-ghflexible-checkbox', 'false');
 
     const r  = await fetch(urlWorklowParams + name, {
         "headers": {
@@ -1762,6 +1761,18 @@ async function getParams(el) {
         "credentials": "include"
     });
     const manualBuildForm = new DOMParser().parseFromString(await r.text(), 'text/html');
+
+    // Проверяем, поддерживает ли workflow ручной запуск, если нет то сразу выходим
+    const span = manualBuildForm.querySelector('div.workflow-dispatch').querySelector('span.d-block');
+    if (span && span.innerText.includes('Workflow does not exist or does not have')) {
+        return;
+    };
+    el.setAttribute('data-ghflexible-checkbox', 'true');
+
+    WORKFLOW_PARAMS[name] = {
+        token: '',
+        params: [],
+    }
     
     let token = '';
     //  querySelectorAll return NodeList object. And it object don't support "filter" method =(. Therefore I am using forEach to find token 
@@ -1785,6 +1796,7 @@ async function getParams(el) {
             }
             if (method == 'get') {
                 i.setAttribute('data-ghflexible-form', 'true');
+                
             }
         });
         const body = manualBuildForm.querySelector('body');
