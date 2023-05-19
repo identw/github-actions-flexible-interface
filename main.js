@@ -684,10 +684,8 @@ function globalButtons() {
             // console.log(body);
             body.appendChild(GROUP_BUILD_FORM);
             const located = document.querySelector('div.PageLayout-region.PageLayout-content').getBoundingClientRect();
-            GROUP_BUILD_FORM.style.top = located.top + 'px';
-            GROUP_BUILD_FORM.style.left = located.left + 'px';
-            console.log(located);
-            console.log(GROUP_BUILD_FORM.getBoundingClientRect());
+            GROUP_BUILD_FORM.style.top = located.top + window.scrollY + 'px';
+            GROUP_BUILD_FORM.style.left = located.left + window.scrollX + 'px';
  
     
             let checkBoxes = [];
