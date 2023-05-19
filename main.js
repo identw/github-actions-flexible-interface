@@ -10,7 +10,7 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO:
-// 24 строчка, нужно сделать ожидание того когда появится вторая форма в GROUP_BUILD_FORM, в стиле как это реализовано в waitClickShowWorkflows. Причем нужно проверять сгенерана эта форма с помощью generateGroupBuildForm или же добавилась оригинальным github'ом
+// Не добавлять checkbox'ы в workflow которые не поддерживают dispatch. А также не добавлять их в WORKFLOW_PARAMS;
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -197,22 +197,26 @@ async function onSubmit(e) {
 
     if (el.getAttribute('data-ghflexible-form') === 'true' ) {
         await waitGroupBuildForm(GROUP_BUILD_FORM);
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
-        let checkBoxes   = [];
-    
-        depthFirstSearch(actionList, function(el) {
-            if (checkWorkflow(el)) {
-                checkBoxes.push(el.children[3]);
-            }
-        });
-
-        const formParams = generateGroupBuildForm(checkBoxes);
-        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
-        if (div.children[1]) {
-            div.children[1].remove();
-        }
-        div.appendChild(formParams);
+        reloadGroupBuildForm();
     }
+}
+
+function reloadGroupBuildForm() {
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    let checkBoxes   = [];
+
+    depthFirstSearch(actionList, function(el) {
+        if (checkWorkflow(el)) {
+            checkBoxes.push(el.children[3]);
+        }
+    });
+
+    const formParams = generateGroupBuildForm(checkBoxes);
+    const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+    if (div.children[1]) {
+        div.children[1].remove();
+    }
+    div.appendChild(formParams);
 }
 
 function disableEditElements() {
@@ -609,6 +613,26 @@ function getIndexInChildren(parent, element) {
     }
 }
 
+function deleteGroupBuild() {
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    CHECKBOX = false;
+    const checkBoxes = [];
+    depthFirstSearch(actionList, function(el) {
+        if (checkWorkflow(el)) {
+            const checkBox = el.children[3];
+            checkBox.checked = false;
+            checkBoxes.push(checkBox);
+        }
+    });
+    reloadGroupBuildForm();
+
+    for (c of checkBoxes) {
+        c.remove();
+    }
+    moveActionListBlock();
+    GROUP_BUILD_FORM.remove();
+}
+
 function globalButtons() {
     const li = document.createElement('li');
     const editIcon = editButtonIcon();
@@ -639,16 +663,7 @@ function globalButtons() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
 
         if (CHECKBOX) {
-            CHECKBOX = false;
-            depthFirstSearch(actionList, function(el) {
-                if (checkWorkflow(el)) {
-                    const checkBox = el.children[3];
-                    checkBox.remove();
-                }
-            });
-            moveActionListBlock();
-            GROUP_BUILD_FORM.remove();
-
+            deleteGroupBuild();
         } else {
             CHECKBOX = true;
             // const form = GROUP_BUILD_FORM;
@@ -1429,7 +1444,7 @@ function generateGroupBuildForm(checkBoxes) {
     let uniqWorkflows = {};
     let added = {};
     for (let i = 0; i < checkedWorkflows.length; i++) {
-        const iParams = WORKFLOW_PARAMS[checkedWorkflows[i]];
+        const iParams = WORKFLOW_PARAMS[checkedWorkflows[i]].params;
         if (!added[i]) {
             uniqWorkflows[checkedWorkflows[i]] = {
                 names: [checkedWorkflows[i]]
@@ -1439,7 +1454,7 @@ function generateGroupBuildForm(checkBoxes) {
         for (let j = i + 1; j < checkedWorkflows.length; j++) {
             if (added[j]) { continue};
 
-            const jParams = WORKFLOW_PARAMS[checkedWorkflows[j]];
+            const jParams = WORKFLOW_PARAMS[checkedWorkflows[j]].params;
             if (isEqualParams(iParams, jParams)) {
                 uniqWorkflows[checkedWorkflows[i]].names.push(checkedWorkflows[j]);
                 added[j] = true;
@@ -1453,7 +1468,7 @@ function generateGroupBuildForm(checkBoxes) {
     form.setAttribute('data-ghflexible-form', 'true');
 
     for (const k in uniqWorkflows) {
-        const params = WORKFLOW_PARAMS[k];
+        const params = WORKFLOW_PARAMS[k].params;
 
         const label = document.createElement('label');
         label.classList.add('color-fg-default');
@@ -1502,6 +1517,9 @@ function generateGroupBuildForm(checkBoxes) {
                 select.classList.add('input-contrast');
                 select.classList.add('width-full');
                 select.setAttribute('value', p.value);
+                select.setAttribute('id', 'params');
+                select.setAttribute('workflow', k);
+                select.setAttribute('name', p.input);
                 divFormGroup.appendChild(select);
 
                 for (const v of p.selectValues) {
@@ -1535,32 +1553,36 @@ function generateGroupBuildForm(checkBoxes) {
                 input.classList.add('input-sm');
                 input.setAttribute('type', 'text');
                 input.setAttribute('value', p.value);
+                input.setAttribute('id', 'params');
+                input.setAttribute('workflow', k);
+                input.setAttribute('name', p.input);
                 divFormGroup.appendChild(input);
             }
 
             if (p.type === 'boolean') {
-                const divParamName = document.createElement('div');
-                divParamName.classList.add('form-group-header');
-                div.appendChild(divParamName);
+                const divFormGroup = document.createElement('div');
+                divFormGroup.classList.add('form-group-body');
+                div.appendChild(divFormGroup);
+
+                const divCheckbox = document.createElement('div');
+                divCheckbox.classList.add('form-checkbox');
+                divCheckbox.classList.add('my-0');
+                divFormGroup.appendChild(divCheckbox);
 
                 const label = document.createElement('label');
                 label.classList.add('color-fg-default');
                 label.classList.add('text-mono');
                 label.classList.add('f6');
                 label.innerText = p.name;
-                divParamName.appendChild(label);
-
-                const divFormGroup = document.createElement('div');
-                divFormGroup.classList.add('form-group-body');
-                div.appendChild(divFormGroup);
+                divCheckbox.appendChild(label);
 
                 const input = document.createElement('input');
-                input.classList.add('form-control');
-                input.classList.add('input-contrast');
-                input.classList.add('input-sm');
-                input.setAttribute('type', 'text');
+                input.setAttribute('type', 'checkbox');
                 input.setAttribute('value', p.value);
-                divFormGroup.appendChild(input);
+                input.setAttribute('id', 'params');
+                input.setAttribute('workflow', k);
+                input.setAttribute('name', p.input);
+                label.appendChild(input);
             }
         }
     }
@@ -1579,8 +1601,64 @@ function generateGroupBuildForm(checkBoxes) {
 
     form.onsubmit = function(event) {
         event.preventDefault();
-        console.log('### RUN WORKFLOWS');
-        console.log(event);
+        const l = window.location.pathname.split('/');
+        const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
+        const referrer = window.origin + window.location.pathname;
+
+        for (const k in uniqWorkflows) {
+            ws = uniqWorkflows[k].names;
+
+            for (const w of ws) {
+                const body = {
+                    authenticity_token: WORKFLOW_PARAMS[w].token,
+                    workflow: `.github/workflows/${w}`,
+                    show_workflow_tip: '',
+                    branch: form.parentElement.querySelector('span.css-truncate-target').innerText,
+                }
+
+                form.querySelectorAll('#params').forEach((i) => {
+                    if (i.getAttribute('workflow') === k) {
+                        let v = i.value;
+                        if(i.getAttribute('type') === 'checkbox') {
+                            v = i.checked;
+                        }
+                        body[i.getAttribute('name')] = v;
+                    }
+                });
+
+                let requestBody = [];
+                for (const key in body) {
+                    requestBody.push(encodeURIComponent(key) + '=' + encodeURIComponent(body[key]));
+                }
+                requestBody = requestBody.join('&');
+
+                fetch(urlWorkflowRun, {
+                    "headers": {
+                        "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7",
+                        "accept-language": "en-US,en;q=0.9",
+                        "cache-control": "no-cache",
+                        "content-type": "application/x-www-form-urlencoded",
+                        "pragma": "no-cache",
+                        "sec-ch-ua": "\"Google Chrome\";v=\"113\", \"Chromium\";v=\"113\", \"Not-A.Brand\";v=\"24\"",
+                        "sec-ch-ua-mobile": "?0",
+                        "sec-ch-ua-platform": "\"macOS\"",
+                        "sec-fetch-dest": "document",
+                        "sec-fetch-mode": "navigate",
+                        "sec-fetch-site": "same-origin",
+                        "sec-fetch-user": "?1",
+                        "upgrade-insecure-requests": "1"
+                    },
+                    "referrer": referrer,
+                    "referrerPolicy": "no-referrer-when-downgrade",
+                    "body": requestBody,
+                    "method": "POST",
+                    "mode": "cors",
+                    "credentials": "include"
+                });
+            }
+        }
+
+        deleteGroupBuild();
     }
 
     return form;
@@ -1603,18 +1681,21 @@ function getParam(el) {
 
     let name = '';
     if (div) {
-        name = div.children[0].innerText.replace(/\s/g, '');
+        name = div.children[0].innerText.trim();
     } else {
         const label = el.querySelector('label.color-fg-default');
-        name = label.innerText.replace(/\s/g, '');
+        name = label.innerText.trim();
     }
     
     type = '';
     value = ''
     selectValues = [];
+    input = '';
     if (el.querySelector('select.form-select')) {
         type = 'select';
-        value = el.querySelector('select.form-select').getAttribute('value');
+        const select = el.querySelector('select.form-select');
+        value = select.getAttribute('value');
+        input = select.getAttribute('name');
 
         el.querySelectorAll('option').forEach((i) => {
             selectValues.push(i.getAttribute('value'));
@@ -1626,17 +1707,21 @@ function getParam(el) {
         el.querySelectorAll('input').forEach((i) => {
             if (i.getAttribute('type') == "checkbox") {
                 value = i.getAttribute('value');
+                input = i.getAttribute('name');
             }
         });
+
     }
     if (el.querySelector('input.form-control.input-contrast')) {
         type = 'string';
         value = el.querySelector('input.form-control.input-contrast').getAttribute('value');
+        input = el.querySelector('input.form-control.input-contrast').getAttribute('name');
 
     }
 
     return {
         name: name,
+        input: input,
         type: type,
         value: value,
         required: required,
@@ -1653,10 +1738,12 @@ function uriWorkflows() {
 async function getParams(el) {
     const l = window.location.pathname.split('/');
     const urlWorklowParams = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual?workflow=.github%2Fworkflows%2F';
-    const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
 
     const name = workflowGetUrlName(el);
-    WORKFLOW_PARAMS[name] = [];
+    WORKFLOW_PARAMS[name] = {
+        token: '',
+        params: [],
+    }
 
     const r  = await fetch(urlWorklowParams + name, {
         "headers": {
@@ -1684,13 +1771,13 @@ async function getParams(el) {
         }
     });
 
-    el.setAttribute('data-ghflexible-run-token', token);
+    WORKFLOW_PARAMS[name].token = token;
     manualBuildForm.querySelectorAll('div.form-group.mt-1.mb-2').forEach((i)  => {
-        WORKFLOW_PARAMS[name].push(getParam(i));
+        WORKFLOW_PARAMS[name].params.push(getParam(i));
     });
 
     // GROUP_BUILD_FORM - записываем первую часть формы 
-    if (!GROUP_BUILD_FORM && WORKFLOW_PARAMS[name].length > 0) {
+    if (!GROUP_BUILD_FORM) {
         manualBuildForm.querySelectorAll('form').forEach((i)  => {
             const method = i.getAttribute('method');
             if (method == 'post') {
@@ -1712,29 +1799,10 @@ async function getParams(el) {
  
     }
     
-    // await fetch(urlWorkflowRun, {
-    //     "headers": {
-    //         "accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.9",
-    //         "accept-language": "en-US,en;q=0.9",
-    //         "cache-control": "max-age=0",
-    //         "content-type": "application/x-www-form-urlencoded",
-    //         "sec-fetch-dest": "document",
-    //         "sec-fetch-mode": "navigate",
-    //         "sec-fetch-site": "same-origin",
-    //         "sec-fetch-user": "?1",
-    //         "upgrade-insecure-requests": "1"
-    //     },
-    //     "referrer": window.location.origin + '/' + window.location.pathname,
-    //     "referrerPolicy": "no-referrer-when-downgrade",
-    //     "body": `authenticity_token=${token}&workflow=.github%2Fworkflows%2F${name}&branch=main&show_workflow_tip=`,
-    //     "method": "POST",
-    //     "mode": "cors",
-    //     "credentials": "include"
-    // });
 }
 
 function isEqualParam(aParam, bParam) {
-    if ( aParam.name === bParam.name && aParam.type === bParam.type && aParam.value === bParam.value && aParam.required === bParam.required && arraysEqual(aParam.selectValues, bParam.selectValues)) {
+    if ( aParam.name === bParam.name && aParam.type === bParam.type && aParam.value === bParam.value && aParam.required === bParam.required && aParam.input === bParam.input && arraysEqual(aParam.selectValues, bParam.selectValues)) {
         return true;
     } else {
         return false;
