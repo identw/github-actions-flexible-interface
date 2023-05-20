@@ -10,9 +10,8 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// -2) если быстро жмакать можно случайно сбросить папки
-// -1) после добавления папки не вызывается moveBlock
-// 1) удаление меню группового билда при нажатии в другие места, нужно исправить баг с нажатием на элементы меню выбора веток
+// -1) если быстро жмакать можно случайно сбросить папки
+// 1) после добавления папки не вызывается moveBlock
 // 2) сохранение параметров после перестройки меню группового билда
 // 3) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
 // 4) сборка webppack, подключить babel, разобраться с source map
@@ -73,14 +72,23 @@ async function init() {
 
 }
 
-// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметром. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
-async function onSubmit(e) {
-    const el = e.target;
+// Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметров. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
+async function onSubmit(event) {
+    console.log('### ONSUBMIT ####');
+    const el = event.target;
 
     if (el.getAttribute('data-ghflexible-form') === 'true' ) {
         await waitGroupBuildForm(GROUP_BUILD_FORM);
         reloadGroupBuildForm();
+        addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
+        const details = GROUP_BUILD_FORM.querySelector('details.details-reset.details-overlay.d-inline-block');
+        details.onclick = function (event) {
+            addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
+        }
     }
+
+    console.log('### END  ONSUBMIT ###');
+    
 }
 
 function onClick(event) {
@@ -684,7 +692,7 @@ function globalButtons() {
     groupBuildIcon.style.width = "20px";
     groupBuildIcon.style.height = "20px";
     groupBuildIcon.style.cursor = 'pointer';
-    addClassToChilds(groupBuildIcon, 'GHflexible-click-group-build')
+    addClassToChilds(groupBuildIcon, 'GHflexible-click-group-build');
 
     groupBuildIcon.onclick = function(event) {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
@@ -1858,14 +1866,19 @@ async function getParams(el) {
         });
         const body = manualBuildForm.querySelector('body');
 
-
         GROUP_BUILD_FORM = document.createElement('div');
         GROUP_BUILD_FORM.setAttribute('class', 'position-absolute Popover-message Popover-message--large Popover-message--ight mt-2 right-0 text-left p-3 mx-auto Box color-shadow-large GHGroupBuild');
         GROUP_BUILD_FORM.appendChild(body.children[0]);
         GROUP_BUILD_FORM.style.position = 'absolute';
         GROUP_BUILD_FORM.style.zIndex = 1000;
         GROUP_BUILD_FORM.classList.remove('right-0');
+
+        const details = GROUP_BUILD_FORM.querySelector('details.details-reset.details-overlay.d-inline-block');
+        details.onclick = function (event) {
+            addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
+        }
         addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
+
     }
     
 }
