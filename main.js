@@ -10,17 +10,16 @@ let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
 
 //  TODO: 
-// -1) если быстро жмакать можно случайно сбросить папки
-// 1) после добавления папки не вызывается moveBlock
-// 2) сохранение параметров после перестройки меню группового билда
-// 3) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
-// 4) сборка webppack, подключить babel, разобраться с source map
-// 5) выбрать картинку, логотип, название и что писать в html
-// 6) зареилзить в google store
-// 7) протетсить в safari, поправить баги
-// 8) зарелизить в safari store
-// 9) протестить в mozilla, поправить баги
-// 10) зарелизить в mozilla store
+// 0) если быстро жмакать можно случайно сбросить папки
+// 1) проверка выбранных workflows: есть ли они для определенной ветки, какие параметры у них в этой ветке.
+// 2) сборка webppack, подключить babel, разобраться с source map
+// 3) выбрать картинку, логотип, название и что писать в html
+// 4) зареилзить в google store
+// 5) протетсить в safari, поправить баги
+// 6) зарелизить в safari store
+// 7) протестить в mozilla, поправить баги
+// 8) зарелизить в mozilla store
+// 9) Глобальный рефактор кода
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -74,7 +73,6 @@ async function init() {
 
 // Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметров. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
 async function onSubmit(event) {
-    console.log('### ONSUBMIT ####');
     const el = event.target;
 
     if (el.getAttribute('data-ghflexible-form') === 'true' ) {
@@ -86,9 +84,6 @@ async function onSubmit(event) {
             addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
         }
     }
-
-    console.log('### END  ONSUBMIT ###');
-    
 }
 
 function onClick(event) {
@@ -643,11 +638,9 @@ function getIndexInChildren(parent, element) {
 }
 
 function deleteGroupBuild() {
-    console.log(`func: deleteGroupBuild`);
     if (!CHECKBOX) {
         return;
     }
-    console.log(`func: deleteGroupBuild run`);
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
@@ -803,6 +796,8 @@ function globalButtons() {
             input.removeAttribute('data-ghflexible-event-lock');
             input = null;
             enableEditElements();
+
+            moveActionListBlock();
         }
 
         input.onblur = function (event) {
@@ -818,6 +813,7 @@ function globalButtons() {
                 change(event);
             }
         }
+        moveActionListBlock();
     }
     
 
@@ -1513,14 +1509,16 @@ function generateGroupBuildForm(checkBoxes) {
     form.setAttribute('data-turbo', 'false');
     form.setAttribute('accept-charset', 'UTF-8');
     form.setAttribute('data-ghflexible-form', 'true');
+    form.classList.add('GHflexible-click-group-build');
 
     for (const k in uniqWorkflows) {
         const params = WORKFLOW_PARAMS[k].params;
 
         const label = document.createElement('label');
         label.classList.add('color-fg-default');
-        // label.classList.add('text-mono');
+        label.classList.add('text-mono');
         label.classList.add('f8');
+        label.classList.add('GHflexible-click-group-build');
         label.title = uniqWorkflows[k].names + ':';
         label.innerText = uniqWorkflows[k].names + ':';
         if (uniqWorkflows[k].names.length > 3) {
@@ -1530,32 +1528,36 @@ function generateGroupBuildForm(checkBoxes) {
             form.appendChild(label);
         }
 
+        let indexParam = 0;
         for (const p of params) {
             const div = document.createElement('div');
             div.classList.add('form-group');
             div.classList.add('mt-1');
             div.classList.add('mb-2');
+            div.classList.add('GHflexible-click-group-build');
             if (p.required) {
                 div.classList.add('required');
             }
             
-
             form.appendChild(div);
 
             if (p.type === 'select') {
                 const divParamName = document.createElement('div');
                 divParamName.classList.add('form-group-header');
+                divParamName.classList.add('GHflexible-click-group-build');
                 div.appendChild(divParamName);
 
                 const label = document.createElement('label');
                 label.classList.add('color-fg-default');
                 label.classList.add('text-mono');
                 label.classList.add('f6');
+                label.classList.add('GHflexible-click-group-build');
                 label.innerText = p.name;
                 divParamName.appendChild(label);
 
                 const divFormGroup = document.createElement('div');
                 divFormGroup.classList.add('form-group-body');
+                divFormGroup.classList.add('GHflexible-click-group-build');
                 div.appendChild(divFormGroup);
 
                 const select = document.createElement('select');
@@ -1564,7 +1566,7 @@ function generateGroupBuildForm(checkBoxes) {
                 select.classList.add('select-sm');
                 select.classList.add('input-contrast');
                 select.classList.add('width-full');
-                select.setAttribute('value', p.value);
+                select.classList.add('GHflexible-click-group-build');
                 select.setAttribute('id', 'params');
                 select.setAttribute('workflow', k);
                 select.setAttribute('name', p.input);
@@ -1573,37 +1575,48 @@ function generateGroupBuildForm(checkBoxes) {
                 }
                 select.setAttribute('title', p.name);
                 divFormGroup.appendChild(select);
+                
+                const i = indexParam;
+                select.onchange = function () {
+                    WORKFLOW_PARAMS[k].params[i].value = select.value;
+                }
 
                 for (const v of p.selectValues) {
                     const option = document.createElement('option');
                     option.setAttribute('value', v);
+                    option.classList.add('GHflexible-click-group-build');
                     option.innerText = v;
                     select.appendChild(option);
                 }
+                select.value = p.value;
             }
 
             if (p.type === 'string') {
                 const divParamName = document.createElement('div');
                 divParamName.classList.add('form-group-header');
+                divParamName.classList.add('GHflexible-click-group-build');
                 div.appendChild(divParamName);
 
                 const label = document.createElement('label');
                 label.classList.add('color-fg-default');
                 label.classList.add('text-mono');
                 label.classList.add('f6');
+                label.classList.add('GHflexible-click-group-build');
                 label.innerText = p.name;
                 divParamName.appendChild(label);
 
                 const divFormGroup = document.createElement('div');
                 divFormGroup.classList.add('form-group-body');
+                divFormGroup.classList.add('GHflexible-click-group-build');
                 div.appendChild(divFormGroup);
 
                 const input = document.createElement('input');
                 input.classList.add('form-control');
                 input.classList.add('input-contrast');
                 input.classList.add('input-sm');
+                input.classList.add('GHflexible-click-group-build');
                 input.setAttribute('type', 'text');
-                input.setAttribute('value', p.value);
+                input.value = p.value;
                 input.setAttribute('id', 'params');
                 input.setAttribute('workflow', k);
                 input.setAttribute('name', p.input);
@@ -1612,35 +1625,51 @@ function generateGroupBuildForm(checkBoxes) {
                 }
                 
                 input.setAttribute('title', p.name);
+                const i = indexParam;
+                input.onchange = function () {
+                    WORKFLOW_PARAMS[k].params[i].value = input.value;
+                }
+
                 divFormGroup.appendChild(input);
             }
 
             if (p.type === 'boolean') {
                 const divFormGroup = document.createElement('div');
                 divFormGroup.classList.add('form-group-body');
+                divFormGroup.classList.add('GHflexible-click-group-build');
                 div.appendChild(divFormGroup);
 
                 const divCheckbox = document.createElement('div');
                 divCheckbox.classList.add('form-checkbox');
                 divCheckbox.classList.add('my-0');
+                divCheckbox.classList.add('GHflexible-click-group-build');
                 divFormGroup.appendChild(divCheckbox);
 
                 const label = document.createElement('label');
                 label.classList.add('color-fg-default');
                 label.classList.add('text-mono');
                 label.classList.add('f6');
+                label.classList.add('GHflexible-click-group-build');
                 label.innerText = p.name;
                 divCheckbox.appendChild(label);
 
                 const input = document.createElement('input');
+                input.classList.add('GHflexible-click-group-build');
                 input.setAttribute('type', 'checkbox');
-                input.setAttribute('value', p.value);
+                input.checked = p.value;
                 input.setAttribute('id', 'params');
                 input.setAttribute('workflow', k);
                 input.setAttribute('name', p.input);
                 input.setAttribute('title', p.name);
+
+                const i = indexParam;
+                input.onchange = function () {
+                    WORKFLOW_PARAMS[k].params[i].value = input.checked;
+                }
+
                 label.appendChild(input);
             }
+            indexParam++;
         }
     }
 
@@ -1650,6 +1679,7 @@ function generateGroupBuildForm(checkBoxes) {
         button.classList.add('btn-primary');
         button.classList.add('btn-sm');
         button.classList.add('t-2');
+        button.classList.add('GHflexible-click-group-build');
         button.setAttribute('type', 'submit');
         button.setAttribute('autofocus', '');
         button.innerHTML = 'Run workflows';
@@ -1726,8 +1756,6 @@ function generateGroupBuildForm(checkBoxes) {
         }
         
     }
-
-    addClassToChilds(form, 'GHflexible-click-group-build');
 
     return form;
 }
