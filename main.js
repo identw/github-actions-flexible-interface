@@ -8,10 +8,11 @@ const TYPE_ROOT        = 3;
 
 let GROUP_BUILD_FORM = undefined;
 let WORKFLOW_PARAMS = {};
+let WORKFLOW_PARAMS_STATUS_LOADED = {};
 
 //  TODO: 
 // 0) При каких-то условиях сбрасывается стейт с сохраненными папками, пока не понял как это воспроизвести
-// 1) Сохранять checkbox'ы в том же состоянии, в котором они были после закрытия меню группового билда
+// 1) Реализовать checkHideElement
 // 2) сборка webppack, подключить babel, разобраться с source map
 // 3) выбрать картинку, логотип, название и что писать в html
 // 4) зареилзить в google store
@@ -36,6 +37,7 @@ window.addEventListener('turbo:load', async function () {
 async function init() {
     if (!checkRun()) { 
         document.removeEventListener('click', onClick);
+        document.removeEventListener('mousedown', mousedown);
         window.removeEventListener('submit', onSubmit);
         window.onbeforeunload = null;
         return;
@@ -44,6 +46,7 @@ async function init() {
     console.log('Github-flexible init...');
     await waitClickShowWorkflows();
     document.addEventListener('click', onClick);
+    document.addEventListener('mousedown', mousedown);
     window.addEventListener('submit', onSubmit);
 
     
@@ -51,22 +54,41 @@ async function init() {
         disableEditElements();
     };
 
-    let actionList     = document.querySelector(SELECTOR_ACTIONS);
-    let allWorkflowsUl = document.querySelector('ul.ActionList');
+    const actionList     = document.querySelector(SELECTOR_ACTIONS);
+    const allWorkflowsUl = document.querySelector('ul.ActionList');
 
-    allWorkflowsUl.children[1].after(globalButtons());
+    const globalButtons = globalButtonsInit();
+    globalButtonAddButton(globalButtons, globalButtonCreateFolder());
+    globalButtonAddButton(globalButtons, globalButtonEdit());
+    globalButtonAddButton(globalButtons, globalButtonReset());
+
+    allWorkflowsUl.children[1].after(globalButtons);
     actionList.prepend(createDropableLine({first: true}));
 
     await initWorkflowsList();
+    await initCheckBoxes();
     getState();
     disableEditElements();
 
-    depthFirstSearch(actionList, async function(el) {
-        if (checkWorkflow(el)) {
-            await createGroupBuildForm(el);
+    // синхронно ищем GROUP_BUILD_FORM - надо сделать до добавления кнопки группового билда
+    await depthFirstSearchSync(actionList, async function(el) {
+        if (checkWorkflow(el) && !GROUP_BUILD_FORM) {
+            await getParams(el);
+
+            // Когда нашли GROUP_BUILD_FORM добавляем глобальную кнопку
+            if (GROUP_BUILD_FORM) {
+                globalButtonAddButton(globalButtons, globalButtonGroupBuild());
+            }
         }
     });
-    await workflowsGetParams();
+
+    // Асинхронно заполняем WORKFLOW_PARAMS, WORKFLOW_PARAMS_STATUS_LOADED 
+    depthFirstSearch(actionList, function(el) {
+        if (checkWorkflow(el)) {
+            console.log(`### Run init getParams for workflow: ${workflowGetName(el)}`);
+            getParams(el);
+        }
+    });
 
 }
 
@@ -75,10 +97,42 @@ async function onSubmit(event) {
     const el = event.target;
 
     if (el.getAttribute('data-ghflexible-form') === 'true' ) {
+        WORKFLOW_PARAMS_STATUS_LOADED = {};
         await waitGroupBuildForm(GROUP_BUILD_FORM);
-        await workflowsGetParams(getBranchGroupBuildForm(GROUP_BUILD_FORM));
-        updateCheckBoxes();
+        await hideCheckBoxes();
+
+        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        const branch     = getBranchGroupBuildForm(GROUP_BUILD_FORM);
+
+        // Синхронно чекаем параметры для нужных workflows
+        await depthFirstSearchSync(actionList, async function(el) {
+            if (checkWorkflow(el)) {
+                const checkBox = el.children[3];
+
+                if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement() && checkBox.checked) {
+                    console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
+                    await getParams(el, branch);
+                    updateCheckBox(el);
+                    unhideCheckBox(el);
+                }
+            }
+        });
         reloadGroupBuildForm();
+
+        // Асинхронно заполняем WORKFLOW_PARAMS 
+        depthFirstSearch(actionList, async function(el) {
+            if (checkWorkflow(el) && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
+                console.log(`# Run Async getParams after change branch: ${workflowGetName(el)}`);
+                await getParams(el, branch);
+
+                if (!checkHideElement()) {
+                    updateCheckBox(el);
+                    unhideCheckBox(el);
+                }
+            }
+        });
+
+       
         addClassToChilds(GROUP_BUILD_FORM, 'GHflexible-click-group-build');
         const details = GROUP_BUILD_FORM.querySelector('details.details-reset.details-overlay.d-inline-block');
         details.onclick = async function () {
@@ -91,7 +145,9 @@ function onClick(event) {
     if (!event.target.classList.contains('GHflexible-contextmenu')) {
         removeConextMenus();
     }
-
+}
+ 
+function mousedown(event) {
     if (!event.target.classList.contains('GHflexible-click-group-build')) {
         deleteGroupBuild();
     }
@@ -224,9 +280,40 @@ async function initWorkflowsList() {
     moveActionListBlock();
 }
 
-function reloadGroupBuildForm() {
+async function initCheckBoxes() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
-    let checkBoxes   = [];
+    const checkBoxes = [];
+    await depthFirstSearchSync(actionList, async function(el) {
+        if (checkWorkflow(el)) {
+            const checkBox = checkBoxWorkflow();
+            checkBox.classList.add('GHflexible-click-group-build');
+            checkBoxes.push(checkBox);
+            el.appendChild(checkBox);
+            hideCheckBox(el);
+            
+            checkBox.onchange = async function () {
+                // Достаем параметры выбранного workflow если они еще не известны, в случае если workflow выбран
+                if (checkBox.checked && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
+                    console.log(`# Run getParams for workflow: ${workflowGetName(el)}, when onchange ckecbox`)
+                    await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
+                }
+
+                const formParams = generateGroupBuildForm(checkBoxes);
+                const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+                if (div.children[1]) {
+                    div.children[1].remove();
+                }
+                div.appendChild(formParams);
+            }
+
+        }
+    });
+}
+ 
+function reloadGroupBuildForm() {
+    console.log(`RUN reloadGroupBuildForm`);
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const checkBoxes   = [];
 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
@@ -260,7 +347,7 @@ function disableEditElements() {
 }
 
 function enableEditElements() {
-    let actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
     EDITABLE = true;
 
     depthFirstSearch(actionList, function(el) {
@@ -643,40 +730,70 @@ function deleteGroupBuild() {
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
             const checkBox = el.children[3];
-            checkBox.checked = false;
             checkBoxes.push(checkBox);
         }
     });
     reloadGroupBuildForm();
 
     for (c of checkBoxes) {
-        c.remove();
+        c.setAttribute('hidden', '');
     }
     moveActionListBlock();
     GROUP_BUILD_FORM.remove();
     CHECKBOX = false;
 }
 
-function globalButtons() {
+function globalButtonsInit() {
     const li = document.createElement('li');
+    const div = document.createElement('div');
+    div.style.marginLeft = 'auto';
+
+    const divIco = document.createElement('div');
+
+    div.appendChild(divIco);
+    li.appendChild(div);
+    li.setAttribute('class', 'ActionList-sectionDivider');
+    return li;
+}
+
+function globalButtonAddButton(globalButton, button) {
+    globalButton.children[0].children[0].appendChild(button);
+}
+
+function globalButtonEdit() {
     const editIcon = editButtonIcon();
     editIcon.style.marginRight = '0.5em';
     editIcon.style.width = "20px";
     editIcon.style.height = "20px";
     editIcon.style.cursor = 'pointer';
 
-    const crFolderIcon = createFolderIcon();
-    crFolderIcon.style.marginRight = '0.5em';
-    crFolderIcon.style.width = "20px";
-    crFolderIcon.style.height = "20px";
-    crFolderIcon.style.cursor = 'pointer';
+    editIcon.onclick = function () {
+        if (EDITABLE) {
+            disableEditElements();
+            moveActionListBlock();
+        } else {
+            enableEditElements();
+            moveActionListBlock();
+        }
+    }
+    return editIcon;
+}
 
+function globalButtonReset() {
     const resetIcon = createResetIcon();
     resetIcon.style.marginRight = '0.5em';
     resetIcon.style.width = "20px";
     resetIcon.style.height = "20px";
     resetIcon.style.cursor = 'pointer';
 
+    resetIcon.onclick = function (event) {
+        resetState();
+    }
+
+    return resetIcon;
+}
+
+function globalButtonGroupBuild() {
     const groupBuildIcon = createGroupBuildIcon();
     groupBuildIcon.style.marginRight = '0.5em';
     groupBuildIcon.style.width = "20px";
@@ -684,13 +801,15 @@ function globalButtons() {
     groupBuildIcon.style.cursor = 'pointer';
     addClassToChilds(groupBuildIcon, 'GHflexible-click-group-build');
 
-    groupBuildIcon.onclick = async function() {
+    groupBuildIcon.onclick = function() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
 
         if (CHECKBOX) {
             deleteGroupBuild();
+            moveActionListBlock();
         } else {
             CHECKBOX = true;
+            disableEditElements();
 
             const body = document.querySelector('body');
             body.appendChild(GROUP_BUILD_FORM);
@@ -698,45 +817,34 @@ function globalButtons() {
             GROUP_BUILD_FORM.style.top = located.top + window.scrollY + 'px';
             GROUP_BUILD_FORM.style.left = located.left + window.scrollX + 'px';
     
-            let checkBoxes = [];
-            depthFirstSearch(actionList, function(el) {
+            depthFirstSearch(actionList, async function(el) {
                 if (checkWorkflow(el)) {
-                    const checkBox = checkBoxWorkflow();
-                    checkBox.classList.add('GHflexible-click-group-build');
-                    if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
-                        checkBox.disabled = true;
+                    if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement()) {
+                        console.log(`# Run getParams for workflow: ${workflowGetName(el)}, when groupBuildClick`)
+                        await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
                     }
-                    
-                    checkBox.onchange = async function () {
-                        const formParams = generateGroupBuildForm(checkBoxes);
-                        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
-                        if (div.children[1]) {
-                            div.children[1].remove();
-                        }
-                        div.appendChild(formParams);
-                    }
-                    checkBoxes.push(checkBox);
-                    el.appendChild(checkBox);
+                    unhideCheckBox(el);
                 }
             });
             moveActionListBlock();
         }
     }
 
-    editIcon.onclick = function (event) {
-        if (EDITABLE) {
-            disableEditElements();
-            moveActionListBlock();
-        } else {
-            enableEditElements();
-            moveActionListBlock();
+    return groupBuildIcon;
+}
 
-        }
-    }
+function checkHideElement(el) {
+    // Проверяем скрыт ли элемент, проверяя открытость/закрытость его родительских папок
+    return false;
+}
 
-    resetIcon.onclick = function (event) {
-        resetState();
-    }
+
+function globalButtonCreateFolder() {
+    const crFolderIcon = createFolderIcon();
+    crFolderIcon.style.marginRight = '0.5em';
+    crFolderIcon.style.width = "20px";
+    crFolderIcon.style.height = "20px";
+    crFolderIcon.style.cursor = 'pointer';
 
     crFolderIcon.onclick = function(event) {
         enableEditElements();
@@ -813,35 +921,46 @@ function globalButtons() {
         }
         moveActionListBlock();
     }
-    
 
-    const div = document.createElement('div');
-    div.style.marginLeft = 'auto';
-
-    const divIco = document.createElement('div');
-
-    divIco.appendChild(crFolderIcon);
-    divIco.appendChild(editIcon);
-    divIco.appendChild(resetIcon);
-    divIco.appendChild(groupBuildIcon);
-    div.appendChild(divIco);
-    li.appendChild(div);
-    li.setAttribute('class', 'ActionList-sectionDivider');
-    return li;
+    return crFolderIcon;
 }
+
 
 function updateCheckBoxes() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
-            const checkBox = el.children[3];
-            checkBox.disabled = false;
-            if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
-                checkBox.checked = false;
-                checkBox.disabled = true;
-            }
+            updateCheckBox(el);
         }
     });
+}
+
+function updateCheckBox(el) {
+    const checkBox = el.children[3];
+    checkBox.disabled = false;
+    if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
+        checkBox.disabled = true;
+    }
+}
+
+async function hideCheckBoxes() {
+    console.log(`run hideCheckBoxes`);
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    await depthFirstSearchSync(actionList, async function(el) {
+        if (checkWorkflow(el)) {
+            hideCheckBox(el);
+        }
+    });
+}
+
+function hideCheckBox(el) {
+    const checkBox = el.children[3];
+    checkBox.setAttribute('hidden', '');
+}
+
+function unhideCheckBox(el) {
+    const checkBox = el.children[3];
+    checkBox.removeAttribute('hidden');
 }
 
 function editButtonIcon() {
@@ -1151,7 +1270,7 @@ function folderActionClose(folder) {
     }
 }
 
-function folderActionOpen(folder) {
+async function folderActionOpen(folder) {
     folder.setAttribute('data-ghflexible-folder-open', 'true');
     let saveEventOnmouseDown = folder.children[0].onmousedown;
     folder.replaceChild(folderOpenIcon(), folder.children[0]);
@@ -1160,9 +1279,16 @@ function folderActionOpen(folder) {
 
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
-        ul.children[i].removeAttribute('hidden');
-        if (checkFolder(ul.children[i]) || checkWorkflow(ul.children[i])) {
-            setIndents(ul.children[i], countIndents(ul.children[i]));
+        const el = ul.children[i]
+        el.removeAttribute('hidden');
+        if (checkFolder(el) || checkWorkflow(el)) {
+            setIndents(el, countIndents(el));
+        }
+        if (checkWorkflow(el) && CHECKBOX) {
+            const branch = getBranchGroupBuildForm(GROUP_BUILD_FORM);
+            await getParams(el, branch);
+            unhideCheckBox(el);
+            updateCheckBox(el);
         }
     }
 }
@@ -1191,9 +1317,8 @@ function workflowFileName(workflow) {
 
 function moveActionListBlock() {
 
-    let actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
     let maxLetters = 0;
-    let checkBox = false;
 
     depthFirstSearch(actionList, function(el) {
         let indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
@@ -1202,12 +1327,6 @@ function moveActionListBlock() {
 
         if (length > maxLetters) {
             maxLetters = length
-        }
-
-        if (checkWorkflow(el)) {
-            if (el.children[3]) {
-                checkBox = true;
-            }
         }
     });
     const block = document.getElementsByClassName('PageLayout')[0];
@@ -1225,7 +1344,7 @@ function moveActionListBlock() {
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
             let diff = 93;
-            if (checkBox) {
+            if (CHECKBOX) {
                 diff = 108;
             }
             el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
@@ -1502,10 +1621,11 @@ function generateGroupBuildForm(checkBoxes) {
     // А также составляем список выбранных workflows и добавляем их в массив checkedElements
     let checkedWorkflows = [];
     for (const i of checkBoxes) {
-        if (i.checked) {
+        if (i.checked && i.getAttribute('hidden') == null && !i.disabled) {
             checkedWorkflows.push(workflowGetName(i.parentElement));
         }
     }
+    console.log(`choosen workflows: ${JSON.stringify(checkedWorkflows, null, 2)}`);
 
     // определяем в каких workflows есть одинаковые параметры
     let uniqWorkflows = {};
@@ -1858,16 +1978,8 @@ function uriWorkflows() {
     return '/' + l[1] + '/' + l[2] + '/actions';
 }
 
-async function workflowsGetParams(branch = null) {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
-    await depthFirstSearchSync(actionList, async function(el) {
-        if (checkWorkflow(el)) {
-            await getParams(el, branch);
-        }
-    });
-}
-
 async function getParams(el, branch = null) {
+    const checkBox = el.children[3];
     let params = {
         workflow: workflowFileName(el),
     };
@@ -1897,10 +2009,14 @@ async function getParams(el, branch = null) {
         "credentials": "include"
     });
     const form = new DOMParser().parseFromString(await r.text(), 'text/html');
+    WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] = true;
+    
     // Проверяем есть ли workflow для ветки
     const span = form.querySelector('div.workflow-dispatch').querySelector('span.d-block');
     if (span && span.innerText.includes('Workflow does not exist or does not have')) {
         el.setAttribute('data-ghflexible-checkbox', 'false');
+        checkBox.disabled = true;
+        
         return;
     };
 
@@ -1945,41 +2061,9 @@ async function getParams(el, branch = null) {
     });
     WORKFLOW_PARAMS[workflowGetName(el)].token = token;
 
+
     el.setAttribute('data-ghflexible-checkbox', 'true');
-}
-
-async function createGroupBuildForm(el) {
-    const params = '?' + uriEncodeParams({
-        workflow: workflowFileName(el),
-    });
-
-    el.setAttribute('data-ghflexible-checkbox', 'false');
-
-    const r = await fetch(urlWorkflowManual() + params, {
-        "headers": {
-        "accept": "text/html",
-        "accept-language": "en-US,en;q=0.9",
-        "sec-fetch-dest": "empty",
-        "sec-fetch-mode": "cors",
-        "sec-fetch-site": "same-origin",
-        "x-requested-with": "XMLHttpRequest"
-        },
-        "referrer": window.location.origin + '/' + window.location.pathname,
-        "referrerPolicy": "no-referrer-when-downgrade",
-        "body": null,
-        "method": "GET",
-        "mode": "cors",
-        "credentials": "include"
-    });
-    const form = new DOMParser().parseFromString(await r.text(), 'text/html');
-
-    // Проверяем, поддерживает ли workflow ручной запуск, если нет то сразу выходим
-    const span = form.querySelector('div.workflow-dispatch').querySelector('span.d-block');
-    if (span && span.innerText.includes('Workflow does not exist or does not have')) {
-        return;
-    };
-    el.setAttribute('data-ghflexible-checkbox', 'true');
-
+    checkBox.disabled = false;
     // GROUP_BUILD_FORM - записываем первую часть формы 
     if (!GROUP_BUILD_FORM) {
         form.querySelectorAll('form').forEach((i)  => {
