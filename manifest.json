@@ -5,23 +5,30 @@
     "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
     "version": "0.0.1",
     "description": "Base Level Extension",
-    "action": {
-      "default_popup": "hello.html",
-      "default_icon": "hello_extensions.png"
-    },
     "permissions": [
         "storage"
     ],
     "host_permissions": [
         "https://github.com/**/*"
     ],
+	"icons": {
+		"16": "16x16.png",
+		"24": "24x24.png",
+		"32": "32x32.png",
+		"48": "48x48.png",
+		"64": "64x64.png",
+		"96": "96x96.png",
+		"128": "128x128.png",
+		"256": "256x256.png",
+		"512": "512x512.png"
+	},
     "content_scripts": [
         {
             "matches": [
                 "https://github.com/**/*"
             ],
             "js": [
-                "src/index.js"
+                "main.js"
             ]
         }
     ]

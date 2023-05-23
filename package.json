@@ -1,6 +1,7 @@
 {
   "scripts": {
-    "build": "webpack"
+    "build": "webpack && npm run copy",
+    "copy": "cp -fv ./img/*.png ./dist/ && cp -fv ./manifest.json ./dist/"
   },
   "devDependencies": {
     "webpack": "^5.83.1",

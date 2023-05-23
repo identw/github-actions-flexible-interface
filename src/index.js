@@ -803,7 +803,6 @@ function globalButtonGroupBuild() {
 
     groupBuildIcon.onclick = function() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
-        console.log('Lalka');
 
         if (CHECKBOX) {
             deleteGroupBuild();
