@@ -12,7 +12,6 @@ let WORKFLOW_PARAMS_STATUS_LOADED = {};
 
 //  TODO: 
 // 0) При каких-то условиях сбрасывается стейт с сохраненными папками, пока не понял как это воспроизвести
-// 1) Реализовать checkHideElement
 // 2) сборка webppack, подключить babel, разобраться с source map
 // 3) выбрать картинку, логотип, название и что писать в html
 // 4) зареилзить в google store
@@ -69,6 +68,7 @@ async function init() {
     await initCheckBoxes();
     getState();
     disableEditElements();
+    moveActionListBlock();
 
     // синхронно ищем GROUP_BUILD_FORM - надо сделать до добавления кнопки группового билда
     await depthFirstSearchSync(actionList, async function(el) {
@@ -85,7 +85,7 @@ async function init() {
     // Асинхронно заполняем WORKFLOW_PARAMS, WORKFLOW_PARAMS_STATUS_LOADED 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
-            console.log(`### Run init getParams for workflow: ${workflowGetName(el)}`);
+            // console.log(`### Run init getParams for workflow: ${workflowGetName(el)}`);
             getParams(el);
         }
     });
@@ -108,9 +108,8 @@ async function onSubmit(event) {
         await depthFirstSearchSync(actionList, async function(el) {
             if (checkWorkflow(el)) {
                 const checkBox = el.children[3];
-
-                if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement() && checkBox.checked) {
-                    console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
+                if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el) && checkBox.checked) {
+                    //console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
                     await getParams(el, branch);
                     updateCheckBox(el);
                     unhideCheckBox(el);
@@ -122,10 +121,10 @@ async function onSubmit(event) {
         // Асинхронно заполняем WORKFLOW_PARAMS 
         depthFirstSearch(actionList, async function(el) {
             if (checkWorkflow(el) && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
-                console.log(`# Run Async getParams after change branch: ${workflowGetName(el)}`);
+                //console.log(`# Run Async getParams after change branch: ${workflowGetName(el)}`);
                 await getParams(el, branch);
 
-                if (!checkHideElement()) {
+                if (!checkHideElement(el)) {
                     updateCheckBox(el);
                     unhideCheckBox(el);
                 }
@@ -311,9 +310,8 @@ async function initCheckBoxes() {
 }
  
 function reloadGroupBuildForm() {
-    console.log(`RUN reloadGroupBuildForm`);
     const actionList = document.querySelector(SELECTOR_ACTIONS);
-    const checkBoxes   = [];
+    const checkBoxes = [];
 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
@@ -819,7 +817,7 @@ function globalButtonGroupBuild() {
     
             depthFirstSearch(actionList, async function(el) {
                 if (checkWorkflow(el)) {
-                    if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement()) {
+                    if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el)) {
                         console.log(`# Run getParams for workflow: ${workflowGetName(el)}, when groupBuildClick`)
                         await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
                     }
@@ -835,6 +833,31 @@ function globalButtonGroupBuild() {
 
 function checkHideElement(el) {
     // Проверяем скрыт ли элемент, проверяя открытость/закрытость его родительских папок
+
+
+    if (checkRootFolder(el)) {
+        return false;
+    }
+
+    if (checkDropableLine(el) ) {
+        return checkHideElement(el.parentElement);
+    }
+
+    if (checkWorkflow(el) ) {
+        return checkHideElement(el.parentElement);
+    }
+
+    if (checkFolderList(el)) {
+        return checkHideElement(el.parentElement);
+    }
+
+    if (checkFolder(el) && el.getAttribute('data-ghflexible-folder-open') == 'false') {
+        return true;
+    }
+
+    if (checkFolder(el)) {
+        return checkHideElement(el.parentElement);
+    }
     return false;
 }
 
@@ -944,7 +967,6 @@ function updateCheckBox(el) {
 }
 
 async function hideCheckBoxes() {
-    console.log(`run hideCheckBoxes`);
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     await depthFirstSearchSync(actionList, async function(el) {
         if (checkWorkflow(el)) {
@@ -1263,10 +1285,17 @@ function folderActionClose(folder) {
 
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
-        ul.children[i].setAttribute('hidden', '');
-        if (checkFolder(ul.children[i]) || checkWorkflow(ul.children[i])) {
-            setIndents(ul.children[i], countIndents(ul.children[i]));
+        const el = ul.children[i];
+        el.setAttribute('hidden', '');
+        if (checkFolder(el) || checkWorkflow(el)) {
+            setIndents(el, countIndents(el));
         }
+        if (checkWorkflow(el) && CHECKBOX) {
+            hideCheckBox(el);
+        }
+    }
+    if (CHECKBOX) {
+        reloadGroupBuildForm();
     }
 }
 
@@ -1279,17 +1308,18 @@ async function folderActionOpen(folder) {
 
     let ul = folder.children[3];
     for (let i = 0; i < ul.children.length; i++) {
-        const el = ul.children[i]
+        const el = ul.children[i];
         el.removeAttribute('hidden');
         if (checkFolder(el) || checkWorkflow(el)) {
             setIndents(el, countIndents(el));
         }
         if (checkWorkflow(el) && CHECKBOX) {
-            const branch = getBranchGroupBuildForm(GROUP_BUILD_FORM);
-            await getParams(el, branch);
             unhideCheckBox(el);
-            updateCheckBox(el);
         }
+    }
+
+    if (CHECKBOX) {
+        reloadGroupBuildForm();
     }
 }
 
@@ -1627,7 +1657,6 @@ function generateGroupBuildForm(checkBoxes) {
             checkedWorkflows.push(workflowGetName(i.parentElement));
         }
     }
-    console.log(`choosen workflows: ${JSON.stringify(checkedWorkflows, null, 2)}`);
 
     // определяем в каких workflows есть одинаковые параметры
     let uniqWorkflows = {};
