@@ -3,7 +3,7 @@
     "name": "Github Actions Flexible Interface",
     "author": "Dmitry Sergeev",
     "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
-    "version": "0.1",
+    "version": "0.0.1",
     "description": "Base Level Extension",
     "action": {
       "default_popup": "hello.html",
@@ -21,7 +21,7 @@
                 "https://github.com/**/*"
             ],
             "js": [
-                "main.js"
+                "src/index.js"
             ]
         }
     ]

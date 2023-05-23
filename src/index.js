@@ -12,7 +12,6 @@ let WORKFLOW_PARAMS_STATUS_LOADED = {};
 
 //  TODO: 
 // 0) При каких-то условиях сбрасывается стейт с сохраненными папками, пока не понял как это воспроизвести
-// 2) сборка webppack, подключить babel, разобраться с source map
 // 3) выбрать картинку, логотип, название и что писать в html
 // 4) зареилзить в google store
 // 5) протетсить в safari, поправить баги
@@ -39,6 +38,9 @@ async function init() {
         document.removeEventListener('mousedown', mousedown);
         window.removeEventListener('submit', onSubmit);
         window.onbeforeunload = null;
+        GROUP_BUILD_FORM = undefined;
+        WORKFLOW_PARAMS = {};
+        WORKFLOW_PARAMS_STATUS_LOADED = {};
         return;
     }
 
@@ -801,6 +803,7 @@ function globalButtonGroupBuild() {
 
     groupBuildIcon.onclick = function() {
         const actionList = document.querySelector(SELECTOR_ACTIONS);
+        console.log('Lalka');
 
         if (CHECKBOX) {
             deleteGroupBuild();
