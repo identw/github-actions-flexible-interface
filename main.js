@@ -1347,7 +1347,9 @@ function moveActionListBlock() {
             if (CHECKBOX) {
                 diff = 108;
             }
-            el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
+            if (el.children[2].tagName == 'svg' || el.children[2].tagName == 'SVG') {
+                el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
+            }
         }
     });
 }
