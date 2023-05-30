@@ -468,6 +468,7 @@ function enableEditElements() {
 
                 if (checkFolder(li)) {
                     folderActionClose(li);
+                    li.children[2].style.marginLeft = '40px';
                 }
 
                 // удаляем все контекстные меню
@@ -1556,21 +1557,24 @@ function moveStateToDomElements(stateElement, domElement) {
                 break;
             }
         }
-        const span = sel.children[1].children[0];
-        span.innerText = stateElement.title;
-        sel.setAttribute('data-ghflexible-rename', stateElement.title);
-        sel.setAttribute('data-ghflexible-checkbox', stateElement.checkbox);
-        
-        // после того как  найденный элемент `sel` был перенесен, индекс следующих всех элементов понизился на единицу, поэтому actionList.children[index] ссылается на следующий элемент. Cледующий элемент всегда технический элемент dropLine, его переносим тоже.
-        if (checkFolder(domElement)) {
-            domElement.children[3].appendChild(sel);
-            domElement.children[3].appendChild(actionList.children[index]);
-            folderReset(domElement);
 
-        }
-        if (checkRootFolder(domElement)) {
-            domElement.appendChild(sel);
-            domElement.appendChild(actionList.children[index]);
+        if (sel) {
+            const span = sel.children[1].children[0];
+            span.innerText = stateElement.title;
+            sel.setAttribute('data-ghflexible-rename', stateElement.title);
+            sel.setAttribute('data-ghflexible-checkbox', stateElement.checkbox);
+
+            // после того как  найденный элемент `sel` был перенесен, индекс следующих всех элементов понизился на единицу, поэтому actionList.children[index] ссылается на следующий элемент. Cледующий элемент всегда технический элемент dropLine, его переносим тоже.
+            if (checkFolder(domElement)) {
+                domElement.children[3].appendChild(sel);
+                domElement.children[3].appendChild(actionList.children[index]);
+                folderReset(domElement);
+
+            }
+            if (checkRootFolder(domElement)) {
+                domElement.appendChild(sel);
+                domElement.appendChild(actionList.children[index]);
+            }
         }
     }
 }
