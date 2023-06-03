@@ -339,9 +339,12 @@ function disableEditElements() {
         el.onmousedown = null;
         if (checkFolder(el)) {
             el.children[2].setAttribute('hidden', '');
+            el.children[0].onmousedown = el.saveFunc;
+            el.children[1].onmousedown = el.saveFunc;
         }
         if (checkWorkflow(el)) {
             el.children[2].setAttribute('hidden', '');
+
         }
     });
     saveState();
@@ -379,6 +382,9 @@ function enableEditElements() {
 
             let saveLiStyle = Object.assign({}, li.style);
             if (checkFolder(li)) {
+                li.children[0].onmousedown = null;
+                li.children[1].onmousedown = null;
+
                 li.oncontextmenu = function(event) {
                     event.stopPropagation();
                     event.preventDefault();
@@ -1233,6 +1239,10 @@ function folderCreate(name, title = name) {
         folderActionClick(this.parentElement);
         saveState();
     }
+
+    li.saveFunc = folderIcon.onmousedown;
+
+    span.onmousedown = folderIcon.onmousedown;
 
     const ul = document.createElement('ul')
     ul.setAttribute('data-ghflexible-folder-list', 'true');
