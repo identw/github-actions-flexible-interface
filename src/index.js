@@ -85,6 +85,11 @@ async function init() {
         }
     });
 
+    // На случай если совершен внутренний переход без перегрузки страницы, то объект GROUP_BUILD_FORM уже существует. Тогда нужно добавить кнопку
+    if (globalButtons.children[0].children[0].children[3] == undefined) {
+        globalButtonAddButton(globalButtons, globalButtonGroupBuild());
+    }
+
     // Асинхронно заполняем WORKFLOW_PARAMS, WORKFLOW_PARAMS_STATUS_LOADED 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
