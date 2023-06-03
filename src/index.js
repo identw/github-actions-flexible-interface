@@ -873,8 +873,7 @@ function globalButtonCreateFolder() {
     crFolderIcon.style.height = "20px";
     crFolderIcon.style.cursor = 'pointer';
 
-    crFolderIcon.onclick = function(event) {
-        enableEditElements();
+    crFolderIcon.onclick = function() {
         let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
         let folder = folderCreate("");
         actionListHtml.children[0].after(folder);
@@ -928,7 +927,6 @@ function globalButtonCreateFolder() {
             input.remove(); 
             input.removeAttribute('data-ghflexible-event-lock');
             input = null;
-            enableEditElements();
 
             moveActionListBlock();
         }
@@ -1245,7 +1243,9 @@ function folderCreate(name, title = name) {
 
     li.appendChild(folderIcon);
     li.appendChild(span);
-    li.appendChild(renameElement());
+    const r = renameElement();
+    r.setAttribute('hidden', '');
+    li.appendChild(r);
     li.appendChild(ul);
     
     return li;
