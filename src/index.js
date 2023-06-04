@@ -417,7 +417,12 @@ function enableEditElements() {
                     p.style.marginRight = '0.45em';
                     p.style.marginTop = '0.4em';
                     p.style.cursor = 'pointer';
-                    p.innerHTML = 'delete'
+                    p.innerHTML = 'delete';
+                    p.style.color = '#000000';
+                    if (getColorScheme() == 'dark') {
+                        p.style.color = '#ffffff';
+                        div.style.background = '#000000'; 
+                    }
                     div.append(p);
 
                     document.body.append(div);
