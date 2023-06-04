@@ -1262,7 +1262,7 @@ function folderCreate(name, title = name) {
     r.setAttribute('hidden', '');
     li.appendChild(r);
     li.appendChild(ul);
-    
+    disableEditElements();
     return li;
 }
 
