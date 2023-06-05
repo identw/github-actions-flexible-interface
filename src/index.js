@@ -1081,6 +1081,7 @@ function renameButton(el, event) {
         return;
     }
     event.preventDefault();
+    el.setAttribute('hidden', '');
 
     let text, span;
     if (checkWorkflow(p)) {
@@ -1132,6 +1133,7 @@ function renameButton(el, event) {
         input.remove(); 
         input.removeAttribute('data-ghflexible-event-lock');
         input = null;
+        el.removeAttribute('hidden');
 
         moveActionListBlock();
     }
