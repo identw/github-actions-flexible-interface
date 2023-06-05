@@ -611,7 +611,11 @@ function enableEditElements() {
 
                             if (checkFolder(currentDroppable)) {
                                 increaseLine(currentDroppable);
-                                currentDroppable.style.backgroundColor = '#d0d7de';
+                                if (getColorScheme() == 'dark') {
+                                    currentDroppable.style.backgroundColor = '#2f2821';
+                                } else {
+                                    currentDroppable.style.backgroundColor = '#d0d7de';
+                                }
                             } 
                             
                             if (checkWorkflow(currentDroppable)) {
