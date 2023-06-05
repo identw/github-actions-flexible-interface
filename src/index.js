@@ -482,6 +482,7 @@ function enableEditElements() {
                 if (event.which === 3) {
                     return;
                 }
+                hideEditIcons();
 
                 if (checkFolder(li)) {
                     folderActionClose(li);
@@ -710,6 +711,7 @@ function enableEditElements() {
                     document.querySelectorAll('li.GHflexible-first-dropable').forEach((el) => {
                         el.style.height = '0em';
                     });
+                    unHideEditIcons();
                     
 
                     if (checkFolder(li)) {
@@ -720,6 +722,20 @@ function enableEditElements() {
 
                 };
             };
+    });
+}
+
+function hideEditIcons() {
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    depthFirstSearch(actionList, function(el) {
+        el.children[2].setAttribute('hidden', '');
+    });
+}
+
+function unHideEditIcons() {
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    depthFirstSearch(actionList, function(el) {
+        el.children[2].removeAttribute('hidden');
     });
 }
 
