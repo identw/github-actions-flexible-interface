@@ -1073,8 +1073,15 @@ function renameElement() {
 
 function renameButton(el, event) {
     event.stopPropagation();
-    event.preventDefault();
     let p = el.parentElement;
+
+    // провярем есть ли input в элементе, на случай если уже идет редактирование этого элемента. В таком случае просто выходим из функции
+    const checkInput = p.querySelector('input');
+    if (checkInput && checkInput.type == 'text') {
+        return;
+    }
+    event.preventDefault();
+
     let text, span;
     if (checkWorkflow(p)) {
         span = p.children[1].children[0];
