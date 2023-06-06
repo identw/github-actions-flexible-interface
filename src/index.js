@@ -476,6 +476,7 @@ function enableEditElements() {
             }
 
             li.onmousedown = function(event) {
+                const startDragTime = Date.now();
                 event.stopPropagation();
                 event.preventDefault();
 
@@ -640,9 +641,7 @@ function enableEditElements() {
                         li.style.display = 'flex';
                         li.children[1].style.flex = '1';
                     }
-
-
-                    if (currentDroppable) {
+                    if (currentDroppable && (Date.now() - startDragTime) > 250) {
                         
                         if (checkFolder(currentDroppable)) {
                             currentDroppable.style.backgroundColor = 'transparent';
