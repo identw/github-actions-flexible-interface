@@ -12,13 +12,11 @@ let WORKFLOW_PARAMS_STATUS_LOADED = {};
 
 //  TODO: 
 // 0) При каких-то условиях сбрасывается стейт с сохраненными папками, пока не понял как это воспроизвести
-// 3) выбрать картинку, логотип, название и что писать в html
-// 4) зареилзить в google store
-// 5) протетсить в safari, поправить баги
-// 6) зарелизить в safari store
-// 7) протестить в mozilla, поправить баги
-// 8) зарелизить в mozilla store
-// 9) Глобальный рефактор кода
+// 1) протетсить в safari, поправить баги
+// 2) зарелизить в safari store
+// 3) протестить в mozilla, поправить баги
+// 4) зарелизить в mozilla store
+// 5) Глобальный рефактор кода
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -117,7 +115,7 @@ async function onSubmit(event) {
             if (checkWorkflow(el)) {
                 const checkBox = el.children[3];
                 if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el) && checkBox.checked) {
-                    //console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
+                    // console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
                     await getParams(el, branch);
                     updateCheckBox(el);
                     unhideCheckBox(el);
@@ -155,7 +153,7 @@ function onClick(event) {
 }
  
 function mousedown(event) {
-    if (!event.target.classList.contains('GHflexible-click-group-build')) {
+    if (!checkContainParrentClass(event.target, 'GHflexible-click-group-build')) {
         deleteGroupBuild();
     }
 }
@@ -897,6 +895,22 @@ function checkHideElement(el) {
     if (checkFolder(el)) {
         return checkHideElement(el.parentElement);
     }
+    return false;
+}
+
+function checkContainParrentClass(el, className) {
+    // Проверяем скрыт ли элемент, проверяя открытость/закрытость его родительских папок
+    if (el.classList.contains(className)) {
+        return true;
+    }
+    if (el.parentElement) {
+        if (el.parentElement.classList.contains(className)) {
+            return true;
+        } else {
+            return checkContainParrentClass(el.parentElement, className);
+        }
+    }
+
     return false;
 }
 
