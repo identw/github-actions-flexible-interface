@@ -44,6 +44,7 @@ async function init() {
 
     console.log('Github-flexible init...');
     await waitClickShowWorkflows();
+    
 
     document.addEventListener('click', onClick);
     document.addEventListener('mousedown', mousedown);
@@ -269,6 +270,7 @@ async function initWorkflowsList() {
                 li.setAttribute('data-ghflexible-element-indent', '0');
                 li.children[1].style.marginLeft = '0.3em';
                 li.style.display = 'flex';
+                li.style.outline = 'none';
                 li.children[1].style.flex = '1';
                 // li.children[1].style.paddingLeft = '0em';
                 li.children[1].setAttribute('class', '');
@@ -1277,6 +1279,7 @@ function folderCreate(name, title = name) {
     // ActionList-item - класс из gtihub, GHflexible-dir - свой класс
     li.setAttribute('class', 'GHflexible-dir GHflexible-dropable');
     li.style.listStyleType = 'none';
+    li.style.outline = 'none';
     
     const span = document.createElement('span');
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
