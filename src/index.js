@@ -1248,21 +1248,6 @@ function checkFolderParent(element) {
     return false;
 }
 
-function getNearUlParent(element) {
-    let saveElement = element;
-
-    while(!checkRootFolder(element)) {
-        element = element.parentElement;
-        if (checkFolder(element)) {
-            let returnElement = element.children[3];
-            element = saveElement;
-            return returnElement;
-        }
-    }
-    element = saveElement;
-    return document.querySelector(SELECTOR_ACTIONS);
-}
-
 // folder
 function folderCreate(name, title = name) {
     // добавляем папку
@@ -1316,16 +1301,6 @@ function folderCreate(name, title = name) {
     li.appendChild(ul);
     disableEditElements();
     return li;
-}
-
-function workflowCreate(name, title = name) {
-    let li = document.createElement('li');
-    li.setAttribute('tabindex', '-1');
-    li.setAttribute('data-test-selector', 'workflow-rendered');
-    li.setAttribute('tabindex', '-1');
-    li.setAttribute('tabindex', '-1');
-    li.setAttribute('tabindex', '-1');
-    li.setAttribute('tabindex', '-1');
 }
 
 function folderClosedIcon() {
@@ -1666,25 +1641,6 @@ function moveStateToDomElements(stateElement, domElement) {
     }
 }
 
-function stateConvertGraph(stateElement, parent) {
-    if (stateElement.type === TYPE_ROOT) {
-        for (const k in stateElement.list) {
-            stateConvertGraph(stateElement.list[k], stateElement);
-        }
-    }
-
-    if (stateElement.type === TYPE_FOLDER) {
-        stateElement.parent = parent;
-        for (const k in stateElement.list) {
-            stateConvertGraph(stateElement.list[k], stateElement);
-        }
-    }
-
-    if (stateElement.type === TYPE_WORKFLOW) {
-        stateElement.parent = parent;
-    }
-}
-
 function createDropableLine({first} = {first: false}) {
     let el = document.createElement('li');
     el.setAttribute('data-ghflexible-dropable-line', '');
@@ -1707,14 +1663,6 @@ function removeConextMenus() {
     document.querySelectorAll('.GHflexible-contextmenu').forEach((el) => {
         el.remove();
         // delete(el);
-    });
-}
-
-function groupBuildCheckbox() {
-    depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el)) {
-
-        }
     });
 }
 
@@ -2239,15 +2187,6 @@ function isEqualParams(aParams, bParams, ignoreVisibleField = true) {
     }
 
     return true;
-}
-
-function isExistParam(param, params) {
-    for (const i = 0; i < params.lengt; i++) {
-        if (isEqualParam(params[i], param)) {
-            return true;
-        }
-    }
-    return false;
 }
 
 function paramFromParams(param, params) {
