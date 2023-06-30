@@ -1,7 +1,7 @@
 {
   "scripts": {
     "build": "rm -rf dist google.zip && webpack && npm run copy",
-    "copy": "cp -fv ./img/*.png ./dist/ && cp -fv ./manifest.json ./dist/ && npm run zip",
+    "copy": "cp -fv ./img/*.png ./dist/ && cp -fv ./manifest.json ./dist/ && npm run zip; cp -fv ./dist/main.js \"./safari/Github Actions Flexible Interface Extension/Resources/main.js\"",
     "zip": "cd dist && zip -r ../google.zip ."
     
   },

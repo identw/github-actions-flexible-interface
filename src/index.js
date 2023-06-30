@@ -1,3 +1,5 @@
+import Utils from './modules/util.js';
+
 let EDITABLE           = false;
 let CHECKBOX           = false;
 const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
@@ -469,8 +471,8 @@ function enableEditElements() {
                         let dLi = li.parentElement.children[i + 1];
                         li.remove();
                         dLi.remove();
-                        delete(li);
-                        delete(dLi);
+                        // delete(li);
+                        // delete(dLi);
                     }
                 }
             }
@@ -1704,24 +1706,8 @@ function checkDropableLine(el) {
 function removeConextMenus() {
     document.querySelectorAll('.GHflexible-contextmenu').forEach((el) => {
         el.remove();
-        delete(el);
+        // delete(el);
     });
-}
-
-function arraysEqual(a, b) {
-    if (a === b) return true;
-    if (a == null || b == null) return false;
-    if (a.length !== b.length) return false;
-
-    // If you don't care about the order of the elements inside
-    // the array, you should sort both arrays here.
-    // Please note that calling sort on an array will modify that array.
-    // you might want to clone your array first.
-
-    for (var i = 0; i < a.length; ++i) {
-        if (a[i] !== b[i]) return false;
-    }
-    return true;
 }
 
 function groupBuildCheckbox() {
@@ -2112,7 +2098,7 @@ async function getParams(el, branch = null) {
             show_workflow_tip: '',
         };
     }
-    params = '?' + uriEncodeParams(params);
+    params = '?' + Utils.uriEncodeParams(params);
 
     const r = await fetch(urlWorkflowManual() + params, {
         "headers": {
@@ -2230,7 +2216,7 @@ function isEqualParam(aParam, bParam, ignoreVisibleField = true) {
         aParam.type === bParam.type && 
         aParam.required === bParam.required && 
         aParam.input === bParam.input && 
-        arraysEqual(aParam.selectValues, bParam.selectValues) &&
+        Utils.arraysEqual(aParam.selectValues, bParam.selectValues) &&
         (ignoreVisibleField === true || aParam.visible === bParam.visible)
     ) {
         return true;
@@ -2294,13 +2280,4 @@ function addClassToChilds(element, className) {
       var childElement = childElements[i];
       addClassToChilds(childElement, className);
     }
-}
-
-function uriEncodeParams(params) {
-    let encodeParams = [];
-    for (const key in params) {
-        encodeParams.push(encodeURIComponent(key) + '=' + encodeURIComponent(params[key]));
-    }
-    encodeParams = encodeParams.join('&');
-    return encodeParams;
 }
