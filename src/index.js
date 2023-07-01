@@ -1,4 +1,4 @@
-import Utils from './modules/util.js';
+import Utils from './modules/utils.js';
 
 let EDITABLE           = false;
 let CHECKBOX           = false;
@@ -188,14 +188,6 @@ function searchShowWorkflows() {
     return showWorkflows;
 }
 
-function promiseSetTimeout(timeout) {
-    return new Promise((res, reject) => {
-        setTimeout(() => {
-            res("result");
-        }, timeout)
-    });
-}
-
 async function waitClickShowWorkflows() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     if (actionList.children.length < 11) {
@@ -204,7 +196,7 @@ async function waitClickShowWorkflows() {
     let clicksCount = 0;
     let notExistCount = 0;
     for (let i = 0; i < 100000; i++) {
-        await promiseSetTimeout(10);
+        await Utils.promiseSetTimeout(10);
 
         let showWorkflows = true;
         showWorkflows = searchShowWorkflows();
@@ -228,7 +220,7 @@ async function waitClickShowWorkflows() {
 async function waitGroupBuildForm(form) {
     
     for (let i = 0; i < 100000; i++) {
-        await promiseSetTimeout(10);
+        await Utils.promiseSetTimeout(10);
         if (form.querySelectorAll('form').length === 1 || form.querySelectorAll('form')[1].getAttribute('data-ghflexible-form') === 'true') {
             continue;
         }
@@ -253,6 +245,9 @@ async function initWorkflowsList() {
         let li = actionListHtml.children[i];
         if (li.getAttribute('data-test-selector') != 'workflows-show-more' && !checkDropableLine(li)) {
             
+            if (li.classList.contains('GHflexible-dir')) {
+                console.log('########## DIR');
+            }
             if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
                 li.classList.add('GHflexible-workflow');
                 const wIcon = workflowIcon();
@@ -555,7 +550,7 @@ function enableEditElements() {
 
                 function increaseLine(d) {
                     let i = getIndexInChildren(d.parentElement, d);
-                    dline = d.parentElement.children[i + 1];
+                    const dline = d.parentElement.children[i + 1];
                     if (checkDropableLine(dline)) {
                         dline.style.height = '1em';
                     }
@@ -774,7 +769,7 @@ function deleteGroupBuild() {
     });
     reloadGroupBuildForm();
 
-    for (c of checkBoxes) {
+    for (const c of checkBoxes) {
         c.setAttribute('hidden', '');
     }
     moveActionListBlock();
@@ -1896,7 +1891,7 @@ function generateGroupBuildForm(checkBoxes) {
         const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
 
         for (const k in uniqWorkflows) {
-            ws = uniqWorkflows[k].names;
+            const ws = uniqWorkflows[k].names;
 
             for (const w of ws) {
                 const body = {
@@ -1986,10 +1981,10 @@ function getParam(el) {
         name = label.innerText.trim();
     }
     
-    type = '';
-    value = ''
-    selectValues = [];
-    input = '';
+    let type = '';
+    let value = ''
+    let selectValues = [];
+    let input = '';
     if (el.querySelector('select.form-select')) {
         type = 'select';
         const select = el.querySelector('select.form-select');

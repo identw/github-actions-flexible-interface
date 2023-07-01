@@ -23,6 +23,14 @@ class Utils {
         }
         return true;
     }
+
+    static promiseSetTimeout(timeout) {
+        return new Promise((res, reject) => {
+            setTimeout(() => {
+                res("result");
+            }, timeout)
+        });
+    }
 }
   
 export default Utils;
