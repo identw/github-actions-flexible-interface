@@ -16,11 +16,9 @@ let WORKFLOW_PARAMS_STATUS_LOADED = {};
 
 //  TODO: 
 // 0) При каких-то условиях сбрасывается стейт с сохраненными папками, пока не понял как это воспроизвести
-// 1) протетсить в safari, поправить баги
-// 2) зарелизить в safari store
-// 3) протестить в mozilla, поправить баги
-// 4) зарелизить в mozilla store
-// 5) Глобальный рефактор кода
+// 1) протестить в mozilla, поправить баги
+// 2) зарелизить в mozilla store
+// 3) Глобальный рефактор кода
 
 
 // подписываемся на события переходов по страницам через history API, для этого в github используется: https://turbo.hotwired.dev/handbook/introduction
@@ -745,17 +743,6 @@ function unHideEditIcons() {
     });
 }
 
-function indexInActions(actionList, name) {
-    for (let i = 0; i < actionList.children.length; i++) {
-        let element = actionList.children[i];
-        let elementName = element.getAttribute('data-ghflexible-name');
-
-        if (name == elementName) {
-            return i;
-        }
-    }
-}
-
 function getIndexInChildren(parent, element) {
     for (let i = 0; i < parent.children.length; i++) {
         let el = parent.children[i];
@@ -1009,15 +996,6 @@ function globalButtonCreateFolder() {
 }
 
 
-function updateCheckBoxes() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
-    depthFirstSearch(actionList, function(el) {
-        if (checkWorkflow(el)) {
-            updateCheckBox(el);
-        }
-    });
-}
-
 function updateCheckBox(el) {
     const checkBox = el.children[3];
     checkBox.disabled = false;
@@ -1187,19 +1165,6 @@ function checkWorkflow(element) {
     if (element.getAttribute('data-ghflexible-type') === 'workflow') {
         return true
     }
-    return false;
-}
-
-function checkFolderParent(element) {
-    let saveElement = element;
-    while(!checkRootFolder(element)) {
-        element = element.parentElement;
-        if (checkFolder(element)) {
-            element = saveElement;
-            return true;
-        }
-    }
-    element = saveElement;
     return false;
 }
 
