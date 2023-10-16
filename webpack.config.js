@@ -8,6 +8,4 @@ if (sourceMap) {
     });
 }
 
-
-
 module.exports = exportConfig;
