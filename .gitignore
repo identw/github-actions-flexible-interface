@@ -1,5 +1,6 @@
 node_modules
 dist
+/extensions
 *.zip
 readme.txt
 safari/Github Actions Flexible Interface Extension/Resources/main.js
