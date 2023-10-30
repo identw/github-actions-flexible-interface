@@ -1,5 +1,5 @@
 {
-    "manifest_version": 3,
+    "manifest_version": 2,
     "name": "Github Actions Flexible Interface",
     "author": "Dmitry Sergeev",
     "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
@@ -18,9 +18,7 @@
 	},
     "content_scripts": [
         {
-            "matches": [
-                "https://github.com/**/*"
-            ],
+            "matches": ["https://github.com/*","https://github.com/*/*/actions/workflows/*.yaml", "https://github.com/*/*/actions", "https://github.com/*/*/actions/workflows/*.yml"],
             "js": [
                 "main.js"
             ]

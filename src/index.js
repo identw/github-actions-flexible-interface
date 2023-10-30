@@ -386,6 +386,10 @@ function enableEditElements() {
             //     }
             // }
 
+            li.onclick = function () {
+                return false;
+            };
+
             li.ondragstart = function () {
                 return false;
             };
