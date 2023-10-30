@@ -1,7 +1,6 @@
 import Utils from './modules/utils.js';
 import Icons from './modules/icons.js';
 import { getColorScheme } from './modules/theme.js';
-import Workflow from './modules/workflow.js';
 
 let EDITABLE           = false;
 let CHECKBOX           = false;
@@ -244,11 +243,45 @@ async function initWorkflowsList() {
 
     for (let i = 0; i < actionListHtml.children.length; i++) {
         let li = actionListHtml.children[i];
+        // if (li.classList.contains('GHflexible-dir')) {
+        //     console.log('########## DIR');
+        // }
+        // if (li.classList.contains('GHflexible-workflow')) {
+        //     console.log('########### WORKFLOW');
+        // }
+        // if (checkDropableLine(li)) {
+        //     console.log('########### DROPLINE');
+        // }
 
         if (li.getAttribute('data-test-selector') != 'workflows-show-more' && !checkDropableLine(li)) {
+            
 
             if (!li.classList.contains('GHflexible-dir') && !li.classList.contains('GHflexible-workflow')) {
-                const w = new Workflow(li);
+                li.classList.add('GHflexible-workflow');
+                const wIcon = Icons.workflow();
+                wIcon.style.width = '15px';
+                wIcon.style.height = '20px';
+
+                const editIcon = renameElement();
+                editIcon.style.width = '15px';
+                editIcon.style.height = '20px';
+
+                li.prepend(wIcon);
+
+                let name = li.children[1].children[0].innerText;
+                li.setAttribute('data-ghflexible-name', name);
+                li.setAttribute('data-ghflexible-rename', name);
+                li.setAttribute('data-ghflexible-type', 'workflow');
+                li.setAttribute('data-ghflexible-element-indent', '0');
+                li.children[1].style.marginLeft = '0.3em';
+                li.style.display = 'flex';
+                li.style.outline = 'none';
+                li.children[1].style.flex = '1';
+                // li.children[1].style.paddingLeft = '0em';
+                li.children[1].setAttribute('class', '');
+                li.appendChild(editIcon);
+                li.after(createDropableLine());
+
             }
 
             if (!li.classList.contains('GHflexible-dropable')) {
