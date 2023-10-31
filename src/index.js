@@ -28,36 +28,37 @@ window.addEventListener('turbo:load', async function () {
 });
 
 
-// (async () => {
-//     await init();
-// })();
+(async () => {
+    await init();
+})();
 
 async function init() {
-    if (!checkRun()) { 
+    if (!checkUri()) { 
         document.removeEventListener('click', onClick);
         document.removeEventListener('mousedown', mousedown);
         window.removeEventListener('submit', onSubmit);
-        window.onbeforeunload = null;
+        window.removeEventListener('beforeunload', onBeforeunload);
         GROUP_BUILD_FORM = undefined;
         WORKFLOW_PARAMS = {};
         WORKFLOW_PARAMS_STATUS_LOADED = {};
         return;
     }
+    if (checkWasLaunched()) {
+        return;
+    }
 
     console.log('Github-flexible init...');
+    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    actionList.classList.add('GHflexible-globals');
+
     await waitClickShowWorkflows();
     
 
     document.addEventListener('click', onClick);
     document.addEventListener('mousedown', mousedown);
     window.addEventListener('submit', onSubmit);
-
-    
-    window.onbeforeunload = function() {
-        disableEditElements();
-    };
-
-    const actionList     = document.querySelector(SELECTOR_ACTIONS);
+    window.addEventListener('beforeunload', onBeforeunload);
+  
     const allWorkflowsUl = document.querySelector('ul.ActionList');
 
     const globalButtons = globalButtonsInit();
@@ -98,7 +99,10 @@ async function init() {
             getParams(el);
         }
     });
+}
 
+function onBeforeunload(event) {
+    disableEditElements();
 }
 
 // Первая форма для группового билда берется из реальной формы workflow, поэтому там работают свои механизмы добавления параметров. С помощью этого события мы находим события изминения при выборе ветки или тега в этой форме и заново генерируем содержимое второй формы, чтобы перезапасать то что автоматически сгенерировалось gtihub'ом
@@ -161,9 +165,10 @@ function mousedown(event) {
     }
 }
 
-function checkRun() {
+function checkUri() {
     const location = window.location.pathname.split('/');
     let flag = false;
+
     if (location[3] === 'actions' && location.length === 4 ) {
         flag = true;
     }
@@ -171,6 +176,15 @@ function checkRun() {
         flag = true;
     }
     if (location[3] === 'actions' &&  location[4] === 'caches' && location.length === 5 ) {
+        flag = true;
+    }
+
+    return flag;
+}
+
+function checkWasLaunched() {
+    let flag = false;
+    if (document.querySelector('ul.GHflexible-globals') !== null) {
         flag = true;
     }
     return flag;
@@ -306,7 +320,6 @@ async function initCheckBoxes() {
             checkBox.onchange = async function () {
                 // Достаем параметры выбранного workflow если они еще не известны, в случае если workflow выбран
                 if (checkBox.checked && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
-                    console.log(`# Run getParams for workflow: ${workflowGetName(el)}, when onchange ckecbox`)
                     await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
                 }
 
@@ -344,9 +357,10 @@ function disableEditElements() {
     const actionList = document.querySelector(SELECTOR_ACTIONS);
     EDITABLE = false;
     depthFirstSearch(actionList, function(el) {
-        el.ondragstart = null;
+        el.ondragstart   = null;
+        el.onclick       = null;
         el.oncontextmenu = null;
-        el.onmousedown = null;
+        el.onmousedown   = null;
         if (checkFolder(el)) {
             el.children[2].setAttribute('hidden', '');
             el.children[0].onmousedown = el.saveFunc;
@@ -386,7 +400,7 @@ function enableEditElements() {
             //     }
             // }
 
-            li.onclick = function () {
+            li.onclick = function (event) {
                 return false;
             };
 
@@ -855,7 +869,6 @@ function globalButtonGroupBuild() {
             depthFirstSearch(actionList, async function(el) {
                 if (checkWorkflow(el)) {
                     if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el)) {
-                        console.log(`# Run getParams for workflow: ${workflowGetName(el)}, when groupBuildClick`)
                         await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
                     }
                     unhideCheckBox(el);
@@ -1043,7 +1056,7 @@ function renameElement() {
 
 function renameButton(el, event) {
     event.stopPropagation();
-    let p = el.parentElement;
+    const p = el.parentElement;
 
     // провярем есть ли input в элементе, на случай если уже идет редактирование этого элемента. В таком случае просто выходим из функции
     const checkInput = p.querySelector('input');
@@ -1053,8 +1066,9 @@ function renameButton(el, event) {
     event.preventDefault();
     el.setAttribute('hidden', '');
 
-    let text, span;
+    let text, span, a;
     if (checkWorkflow(p)) {
+        a = p.children[1];
         span = p.children[1].children[0];
     }
     if (checkFolder(p)) {
@@ -1066,7 +1080,9 @@ function renameButton(el, event) {
     let input = document.createElement('input');
     input.value = text;
     input.type = 'text';
-    span.before(input);
+    a.setAttribute('hidden', '');
+    a.before(input);
+    // span.before(input);
     input.focus();
     input.select();
 
@@ -1104,6 +1120,7 @@ function renameButton(el, event) {
         input.removeAttribute('data-ghflexible-event-lock');
         input = null;
         el.removeAttribute('hidden');
+        a.removeAttribute('hidden');
 
         moveActionListBlock();
     }
