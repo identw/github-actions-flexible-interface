@@ -1,0 +1,44 @@
+name: build-release
+concurrency:
+  group: build-${{ github.ref_name }}
+on:
+  push:
+    tags:
+      - v*.*.*
+    paths:
+    - .github/**/*
+    - src/**/*
+    - mozilla/**/*
+    - google/**/*
+    - package*.json
+    - img/*
+    - version
+    - webpack.config.js
+
+permissions:
+  contents: write
+
+env:
+  AUTHOR_EMAIL: identw+gha@tapclap.com
+  AUTHOR_NAME: 'Github Actions'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@main
+      - uses: actions/setup-node@main
+        with:
+          node-version: 20
+      - name: node_install
+        run: npm ci
+      - name: build
+        run: npm run build
+      - name: ${{ steps.version.outputs.VERSION }}
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            ./extensions/google.zip
+            ./extensions/mozilla.zip
+
+  
