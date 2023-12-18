@@ -115,7 +115,7 @@ async function onSubmit(event) {
         await hideCheckBoxes();
 
         const actionList = document.querySelector(SELECTOR_ACTIONS);
-        const branch     = getBranchGroupBuildForm(GROUP_BUILD_FORM);
+        const ref        = getRefGroupBuildForm(GROUP_BUILD_FORM);
 
         // Синхронно чекаем параметры для нужных workflows
         await depthFirstSearchSync(actionList, async function(el) {
@@ -123,7 +123,7 @@ async function onSubmit(event) {
                 const checkBox = el.children[3];
                 if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el) && checkBox.checked) {
                     // console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
-                    await getParams(el, branch);
+                    await getParams(el, ref);
                     updateCheckBox(el);
                     unhideCheckBox(el);
                 }
@@ -135,7 +135,7 @@ async function onSubmit(event) {
         depthFirstSearch(actionList, async function(el) {
             if (checkWorkflow(el) && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
                 //console.log(`# Run Async getParams after change branch: ${workflowGetName(el)}`);
-                await getParams(el, branch);
+                await getParams(el, ref);
 
                 if (!checkHideElement(el)) {
                     updateCheckBox(el);
@@ -320,7 +320,7 @@ async function initCheckBoxes() {
             checkBox.onchange = async function () {
                 // Достаем параметры выбранного workflow если они еще не известны, в случае если workflow выбран
                 if (checkBox.checked && !WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)]) {
-                    await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
+                    await getParams(el, getRefGroupBuildForm(GROUP_BUILD_FORM));
                 }
 
                 const formParams = generateGroupBuildForm(checkBoxes);
@@ -869,7 +869,7 @@ function globalButtonGroupBuild() {
             depthFirstSearch(actionList, async function(el) {
                 if (checkWorkflow(el)) {
                     if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el)) {
-                        await getParams(el, getBranchGroupBuildForm(GROUP_BUILD_FORM));
+                        await getParams(el, getRefGroupBuildForm(GROUP_BUILD_FORM));
                     }
                     unhideCheckBox(el);
                 }
@@ -1819,15 +1819,30 @@ function generateGroupBuildForm(checkBoxes) {
         const l = window.location.pathname.split('/');
         const urlWorkflowRun = window.location.origin + '/' + l[1] + '/' + l[2] + '/actions/manual';
 
+        const refElement = form.parentElement.querySelector('span.css-truncate-target');
+        const refPrevElement = refElement.previousElementSibling;
+        let ref = {
+            refName: refElement.innerText.trim(),
+            refType: 'branch'
+        };
+        if (refPrevElement.innerText.toLowerCase().includes('tag')) {
+            ref['refType'] = 'tag';
+        }
+
         for (const k in uniqWorkflows) {
             const ws = uniqWorkflows[k].names;
 
             for (const w of ws) {
-                const body = {
+                let body = {
                     authenticity_token: WORKFLOW_PARAMS[w].token,
                     workflow: WORKFLOW_PARAMS[w].workflowFile,
                     show_workflow_tip: '',
-                    branch: form.parentElement.querySelector('span.css-truncate-target').innerText,
+                }
+                if (ref.refType == 'tag') {
+                    body['tag'] = ref.refName;
+                }
+                if (ref.refType == 'branch') {
+                    body['branch'] = ref.refName;
                 }
 
                 form.querySelectorAll('#params').forEach((i) => {
@@ -1958,17 +1973,22 @@ function uriWorkflows() {
     return '/' + l[1] + '/' + l[2] + '/actions';
 }
 
-async function getParams(el, branch = null) {
+async function getParams(el, ref = null) {
     const checkBox = el.children[3];
     let params = {
         workflow: workflowFileName(el),
     };
-    if (branch) {
+    if (ref) {
         params = {
-            branch: branch,
             workflow: workflowFileName(el),
             show_workflow_tip: '',
         };
+        if (ref.refType == 'branch') {
+            params['branch'] = ref.refName;
+        }
+        if (ref.refType == 'tag') {
+            params['tag'] = ref.refName;
+        }
     }
     params = '?' + Utils.uriEncodeParams(params);
 
@@ -2073,8 +2093,17 @@ async function getParams(el, branch = null) {
     }
 }
 
-function getBranchGroupBuildForm() {
-    return GROUP_BUILD_FORM.querySelector('span.css-truncate-target').innerText.trim();
+function getRefGroupBuildForm() {
+    const el   = GROUP_BUILD_FORM.querySelector('span.css-truncate-target')
+    const prev = el.previousElementSibling;
+    let type = 'branch';
+    if (prev.innerText.toLowerCase().includes('tag')) {
+        type = 'tag';
+    }
+    return {
+        refName: el.innerText.trim(),
+        refType: type,
+    }
 }
 
 function urlWorkflowManual() {
