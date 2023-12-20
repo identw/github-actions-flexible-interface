@@ -1143,7 +1143,7 @@ function renameButton(el, event) {
 // indents
 function setIndents(element, indents) {
     element.setAttribute('data-ghflexible-element-indent', indents.toString());
-    element.style.marginLeft = indents / 2.0 + 'em';
+    element.style.marginLeft = '0.5em';
 }
 
 function countIndents(element) {
@@ -1350,22 +1350,25 @@ function moveActionListBlock() {
     });
     const block = document.getElementsByClassName('PageLayout')[0];
     let px = (maxLetters * 10 + 66);
-    if (px < 256) {
-        px = 256;
+   
+    if (px < 270) {
+        px = 270;
     }
     const pixels = px + 'px';
     block.style.setProperty('--Layout-pane-width', pixels);
 
     depthFirstSearch(actionList, function(el) {
-        const indent = el.getAttribute('data-ghflexible-element-indent');
-        const indentPixels = indent * 7;
-
+        const indent = parseInt(el.getAttribute('data-ghflexible-element-indent'));
+       
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
             let diff = 93;
             if (CHECKBOX) {
                 diff = 108;
             }
+            
+            const indentPixels = (indent + 1) * 7;
+
             if (el.children[2].tagName == 'svg' || el.children[2].tagName == 'SVG') {
                 el.children[2].style.marginLeft = (px - diff - indentPixels - width) + 'px';
             }
