@@ -4,7 +4,7 @@
 
     "name": "GH Actions Flexible Interface",
     "description": "This extension extends GH actions menu. Gives the abilities: folders, rename workflows, group builds",
-    "version": "0.3.12",
+    "version": "0.3.13",
 
     "icons": {
         "48": "images/48x48.png",

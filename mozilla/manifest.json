@@ -3,7 +3,7 @@
   "name": "Github Actions Flexible Interface",
   "author": "Dmitry Sergeev",
   "homepage_url": "https://github.com/identw/github-actions-flexible-interface",
-  "version": "0.3.12",
+  "version": "0.3.13",
   "description": "This extension gives flexible customization of the workflows menu. Gives the abilities: folders, rename workflows, group builds",
   "icons": {
     "16": "16x16.png",

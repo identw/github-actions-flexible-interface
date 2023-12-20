@@ -216,15 +216,14 @@ async function waitClickShowWorkflows() {
         showWorkflows = searchShowWorkflows();
 
         if (showWorkflows && showWorkflows !== true) {
-            if (clicksCount == 0) {
-                showWorkflows.click();
-                notExistCount = 0;
-            }
+            showWorkflows.click();
+            await Utils.promiseSetTimeout(330);
+            notExistCount = 0;
             clicksCount++;
         } else {
             notExistCount++;
         }
-        if (notExistCount > 5 && clicksCount > 0) {
+        if (notExistCount > 30 && clicksCount > 0) {
             break;
         }
         showWorkflows = true;
