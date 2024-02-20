@@ -4,7 +4,6 @@ import { getColorScheme } from './modules/theme.js';
 
 let EDITABLE           = false;
 let CHECKBOX           = false;
-const SELECTOR_ACTIONS = 'ul.ActionList.ActionList--subGroup';
 const TYPE_WORKFLOW    = 1;
 const TYPE_FOLDER      = 2;
 const TYPE_ROOT        = 3;
@@ -29,27 +28,30 @@ window.addEventListener('turbo:load', async function () {
 
 
 (async () => {
-    await init();
+    try {
+        await init();
+    } catch(e) {
+        cleanup();
+        console.error(e);
+    }
+    
 })();
 
 async function init() {
     if (!checkUri()) { 
-        document.removeEventListener('click', onClick);
-        document.removeEventListener('mousedown', mousedown);
-        window.removeEventListener('submit', onSubmit);
-        window.removeEventListener('beforeunload', onBeforeunload);
-        GROUP_BUILD_FORM = undefined;
-        WORKFLOW_PARAMS = {};
-        WORKFLOW_PARAMS_STATUS_LOADED = {};
+        cleanup();
         return;
     }
+
     if (checkWasLaunched()) {
         return;
     }
 
     console.log('Github-flexible init...');
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
+    
     actionList.classList.add('GHflexible-globals');
+    actionList.setAttribute('data-ghflexible-root', 'true');
 
     await waitClickShowWorkflows();
     
@@ -59,7 +61,7 @@ async function init() {
     window.addEventListener('submit', onSubmit);
     window.addEventListener('beforeunload', onBeforeunload);
   
-    const allWorkflowsUl = document.querySelector('ul.ActionList');
+    const allWorkflowsUl = getULAllWorkflows();
 
     const globalButtons = globalButtonsInit();
     globalButtonAddButton(globalButtons, globalButtonCreateFolder());
@@ -101,6 +103,16 @@ async function init() {
     });
 }
 
+function cleanup() {
+    document.removeEventListener('click', onClick);
+    document.removeEventListener('mousedown', mousedown);
+    window.removeEventListener('submit', onSubmit);
+    window.removeEventListener('beforeunload', onBeforeunload);
+    GROUP_BUILD_FORM = undefined;
+    WORKFLOW_PARAMS = {};
+    WORKFLOW_PARAMS_STATUS_LOADED = {};
+}
+
 function onBeforeunload(event) {
     disableEditElements();
 }
@@ -114,7 +126,7 @@ async function onSubmit(event) {
         await waitGroupBuildForm(GROUP_BUILD_FORM);
         await hideCheckBoxes();
 
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        const actionList = getULWorkflows();
         const ref        = getRefGroupBuildForm(GROUP_BUILD_FORM);
 
         // Синхронно чекаем параметры для нужных workflows
@@ -153,6 +165,37 @@ async function onSubmit(event) {
     }
 }
 
+function getULWorkflows() {
+    let ulList = document.querySelectorAll('ul.ActionListWrap');
+
+    for (let i = 0; i < ulList.length; i++) {
+        const ul = ulList[i];
+        if (ul.children.length > 0) {
+            const role = ul.getAttribute('role');
+            const itemId = ul.children[0].getAttribute('data-item-id');
+            if (role == 'list' && itemId != 'caches') {
+                return ul;
+            }
+        }
+    }
+}
+
+function getULAllWorkflows() {
+    let ulList = document.querySelectorAll('ul.ActionListWrap');
+
+    for (let i = 0; i < ulList.length; i++) {
+        const ul = ulList[i];
+        if (ul.children.length > 0) {
+            const itemId = ul.children[0].getAttribute('data-item-id');
+            if (itemId == 'all_workflows') {
+                return ul;
+            }
+        }
+    }
+}
+
+
+
 function onClick(event) {
     if (!event.target.classList.contains('GHflexible-contextmenu')) {
         removeConextMenus();
@@ -190,33 +233,33 @@ function checkWasLaunched() {
     return flag;
 }
 
-function searchShowWorkflows() {
-    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
-    let showWorkflows = false;
-    for (let i = 0; i < actionListHtml.children.length; i++) {
-        let li = actionListHtml.children[i];
-        if (li.getAttribute('data-test-selector') == 'workflows-show-more' && li.getAttribute('hidden') === null) {
-            showWorkflows = li.children[0];
-        }
+function existShowWorkflows() {
+    const showWorkflows = document.querySelector('div.ActionListItem');
+    if (showWorkflows.getAttribute('hidden') == null) {
+        return true;
     }
-    return showWorkflows;
+    return false;
+}
+
+function clickShowWorkflows() {
+    if (existShowWorkflows()) {
+        const showWorkflows = document.querySelector('div.ActionListItem').children[0];
+        showWorkflows.click();
+    }
 }
 
 async function waitClickShowWorkflows() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
-    if (actionList.children.length < 11) {
-        return;
-    }
+    const actionList = getULWorkflows();
+    // if (actionList.children.length < 11) {
+    //     console.log('DEBUG return < 11');
+    //     return;
+    // }
     let clicksCount = 0;
     let notExistCount = 0;
     for (let i = 0; i < 100000; i++) {
         await Utils.promiseSetTimeout(10);
-
-        let showWorkflows = true;
-        showWorkflows = searchShowWorkflows();
-
-        if (showWorkflows && showWorkflows !== true) {
-            showWorkflows.click();
+        if (existShowWorkflows()) {
+            clickShowWorkflows();
             await Utils.promiseSetTimeout(330);
             notExistCount = 0;
             clicksCount++;
@@ -226,7 +269,6 @@ async function waitClickShowWorkflows() {
         if (notExistCount > 30 && clicksCount > 0) {
             break;
         }
-        showWorkflows = true;
     }
 }
 
@@ -252,10 +294,13 @@ async function waitGroupBuildForm(form) {
 }
 
 async function initWorkflowsList() {
-    let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
+    let actionListHtml = getULWorkflows();
 
     for (let i = 0; i < actionListHtml.children.length; i++) {
-        let li = actionListHtml.children[i];
+        const li = actionListHtml.children[i];
+        const indents = countIndents(li);
+        setIndents(li, indents);
+
         // if (li.classList.contains('GHflexible-dir')) {
         //     console.log('########## DIR');
         // }
@@ -306,7 +351,7 @@ async function initWorkflowsList() {
 }
 
 async function initCheckBoxes() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     const checkBoxes = [];
     await depthFirstSearchSync(actionList, async function(el) {
         if (checkWorkflow(el)) {
@@ -335,7 +380,7 @@ async function initCheckBoxes() {
 }
  
 function reloadGroupBuildForm() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     const checkBoxes = [];
 
     depthFirstSearch(actionList, function(el) {
@@ -353,7 +398,7 @@ function reloadGroupBuildForm() {
 }
 
 function disableEditElements() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     EDITABLE = false;
     depthFirstSearch(actionList, function(el) {
         el.ondragstart   = null;
@@ -374,7 +419,7 @@ function disableEditElements() {
 }
 
 function enableEditElements() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     EDITABLE = true;
 
     depthFirstSearch(actionList, function(el) {
@@ -747,14 +792,14 @@ function enableEditElements() {
 }
 
 function hideEditIcons() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     depthFirstSearch(actionList, function(el) {
         el.children[2].setAttribute('hidden', '');
     });
 }
 
 function unHideEditIcons() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     depthFirstSearch(actionList, function(el) {
         el.children[2].removeAttribute('hidden');
     });
@@ -773,7 +818,7 @@ function deleteGroupBuild() {
     if (!CHECKBOX) {
         return;
     }
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
@@ -850,7 +895,7 @@ function globalButtonGroupBuild() {
     addClassToChilds(groupBuildIcon, 'GHflexible-click-group-build');
 
     groupBuildIcon.onclick = function() {
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        const actionList = getULWorkflows();
 
         if (CHECKBOX) {
             deleteGroupBuild();
@@ -935,7 +980,7 @@ function globalButtonCreateFolder() {
     crFolderIcon.style.cursor = 'pointer';
 
     crFolderIcon.onclick = function() {
-        let actionListHtml = document.querySelector(SELECTOR_ACTIONS);
+        let actionListHtml = getULWorkflows();
         let folder = folderCreate("");
         actionListHtml.children[0].after(folder);
         folder.after(createDropableLine());
@@ -1021,7 +1066,7 @@ function updateCheckBox(el) {
 }
 
 async function hideCheckBoxes() {
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     await depthFirstSearchSync(actionList, async function(el) {
         if (checkWorkflow(el)) {
             hideCheckBox(el);
@@ -1161,7 +1206,7 @@ function countIndents(element) {
 
 // checkings object
 function checkRootFolder(element) {
-    if (element.getAttribute('data-test-selector') === 'workflows-list') {
+    if (element.getAttribute('data-ghflexible-root') === 'true') {
         return true
     }
     return false;
@@ -1212,6 +1257,7 @@ function folderCreate(name, title = name) {
     span.setAttribute('class', 'ActionList-item-label ActionList-item-label--truncate');
     span.innerText = title;
     span.style.marginRight = '0.8em';
+    span.style.cursor = 'default';
 
     const folderIcon = Icons.folderClosed();
     folderIcon.style.cursor = 'default';
@@ -1335,11 +1381,13 @@ function workflowFileName(workflow) {
 
 function moveActionListBlock() {
 
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     let maxLetters = 0;
 
     depthFirstSearch(actionList, function(el) {
-        let indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
+        let indents = countIndents(el);
+        setIndents(el, indents);
+        indents = parseInt(el.getAttribute('data-ghflexible-element-indent'));
         let name = el.getAttribute('data-ghflexible-rename');
         let length = name.length + indents;
 
@@ -1361,9 +1409,9 @@ function moveActionListBlock() {
        
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
-            let diff = 93;
+            let diff = 77;
             if (CHECKBOX) {
-                diff = 108;
+                diff = 92;
             }
             
             const indentPixels = (indent + 1) * 7;
@@ -1437,7 +1485,7 @@ function resetState() {
     if (c === true) {
         localStorage.removeItem(getSaveKey());
 
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        const actionList = getULWorkflows();
         actionList.remove();
         window.location.reload();
     }
@@ -1449,7 +1497,7 @@ function saveState() {
         title: '',
         list: [],
     };
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     moveDomElementsToState(actionList, state);
     localStorage.setItem(getSaveKey(), JSON.stringify(state));
 }
@@ -1502,7 +1550,7 @@ function getState() {
     if (localStorage.hasOwnProperty(getSaveKey())) {
         state = JSON.parse(localStorage.getItem(getSaveKey()));
     }
-    const actionList = document.querySelector(SELECTOR_ACTIONS);
+    const actionList = getULWorkflows();
     moveStateToDomElements(state, actionList);
 }
 
@@ -1535,7 +1583,7 @@ function moveStateToDomElements(stateElement, domElement) {
     }
 
     if (stateElement.type === TYPE_WORKFLOW) {
-        const actionList = document.querySelector(SELECTOR_ACTIONS);
+        const actionList = getULWorkflows();
         let sel, index;
         for (let i = 0; i < actionList.children.length; i++) {
             const el = actionList.children[i];
