@@ -1,0 +1,12 @@
+{
+    "scripts": {
+      "build": "rm -rf dist extensions && mkdir extensions && webpack && npm run copy",
+      "copy": "cp -fv ./img/*.png ./dist/ && cp -fv ./mozilla/manifest.json ./dist/ && npm run zip-mozilla",
+      "zip-mozilla": "cd dist && zip -r ../archive.zip . && mv -fv ../archive.zip ../extensions/mozilla.zip"
+    },
+    "devDependencies": {
+      "webpack": "^5.83.1",
+      "webpack-cli": "^5.1.1"
+    }
+  }
+  

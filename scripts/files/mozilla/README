@@ -1,0 +1,10 @@
+requirements: 
+1) OS: linux or macos
+1) nodejs 20.11.1
+
+build:
+1) cd source
+2) npm ci
+3) npm run build
+
+result: extensions/mozilla.zip
