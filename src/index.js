@@ -250,10 +250,10 @@ function clickShowWorkflows() {
 
 async function waitClickShowWorkflows() {
     const actionList = getULWorkflows();
-    // if (actionList.children.length < 11) {
-    //     console.log('DEBUG return < 11');
-    //     return;
-    // }
+    if (!existShowWorkflows()) {
+        console.log('Button "show workflows" is not exist');
+        return;
+    }
     let clicksCount = 0;
     let notExistCount = 0;
     for (let i = 0; i < 100000; i++) {

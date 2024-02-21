@@ -4,7 +4,7 @@ const fs = require('fs');
 const manifests = [`${__dirname}/google/manifest.json`, `${__dirname}/mozilla/manifest.json`];
 
 try {
-    const version = fs.readFileSync(`${__dirname}/version`, 'utf8');
+    const version = fs.readFileSync(`${__dirname}/version`, 'utf8').trim();
     for (m of manifests) {
         const data = fs.readFileSync(m, 'utf8');
         const jsonData = JSON.parse(data);
