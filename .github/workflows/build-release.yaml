@@ -32,13 +32,19 @@ jobs:
           node-version: 20
       - name: node_install
         run: npm ci
+        
       - name: build
-        run: npm run build
+        run: | 
+          npm run build
+          npm run mozilla-prepare
+          mv ./source.zip ./mozilla_source.zip
+
       - name: ${{ steps.version.outputs.VERSION }}
         uses: softprops/action-gh-release@v1
         with:
           files: |
             ./extensions/google.zip
             ./extensions/mozilla.zip
+            ./mozilla_source.zip
 
   

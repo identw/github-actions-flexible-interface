@@ -166,14 +166,13 @@ async function onSubmit(event) {
 }
 
 function getULWorkflows() {
-    let ulList = document.querySelectorAll('ul.ActionListWrap');
+    let ulList = document.querySelectorAll('ul.ActionList.ActionList--subGroup');
 
     for (let i = 0; i < ulList.length; i++) {
         const ul = ulList[i];
         if (ul.children.length > 0) {
-            const role = ul.getAttribute('role');
-            const itemId = ul.children[0].getAttribute('data-item-id');
-            if (role == 'list' && itemId != 'caches') {
+            const itemId = ul.getAttribute('data-test-selector');
+            if (itemId == 'workflows-list') {
                 return ul;
             }
         }
@@ -181,19 +180,22 @@ function getULWorkflows() {
 }
 
 function getULAllWorkflows() {
-    let ulList = document.querySelectorAll('ul.ActionListWrap');
+    // old layout 
+    return document.querySelector('ul.ActionList');
 
-    for (let i = 0; i < ulList.length; i++) {
-        const ul = ulList[i];
-        if (ul.children.length > 0) {
-            const itemId = ul.children[0].getAttribute('data-item-id');
-            if (itemId == 'all_workflows') {
-                return ul;
-            }
-        }
-    }
+    // new layout
+    // let ulList = document.querySelectorAll('ul.ActionListWrap');
+
+    // for (let i = 0; i < ulList.length; i++) {
+    //     const ul = ulList[i];
+    //     if (ul.children.length > 0) {
+    //         const itemId = ul.children[0].getAttribute('data-item-id');
+    //         if (itemId == 'all_workflows') {
+    //             return ul;
+    //         }
+    //     }
+    // }
 }
-
 
 
 function onClick(event) {
@@ -233,8 +235,22 @@ function checkWasLaunched() {
     return flag;
 }
 
+function getShowWorkflows() {
+    // old layout
+    const workflows = document.querySelectorAll('li.ActionList-item');
+    for(const i of workflows) {
+        if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
+            return i;
+        }
+    }
+
+    // new layout
+    // const showWorkflows = document.querySelector('li.ActionListItem');
+    // return showWorkflows;
+}
+
 function existShowWorkflows() {
-    const showWorkflows = document.querySelector('div.ActionListItem');
+    const showWorkflows = getShowWorkflows();
     if (showWorkflows.getAttribute('hidden') == null) {
         return true;
     }
@@ -243,30 +259,32 @@ function existShowWorkflows() {
 
 function clickShowWorkflows() {
     if (existShowWorkflows()) {
-        const showWorkflows = document.querySelector('div.ActionListItem').children[0];
+        const showWorkflows = getShowWorkflows();
         showWorkflows.click();
     }
 }
 
 async function waitClickShowWorkflows() {
-    const actionList = getULWorkflows();
-    if (!existShowWorkflows()) {
-        console.log('Button "show workflows" is not exist');
-        return;
-    }
     let clicksCount = 0;
     let notExistCount = 0;
     for (let i = 0; i < 100000; i++) {
         await Utils.promiseSetTimeout(10);
         if (existShowWorkflows()) {
             clickShowWorkflows();
-            await Utils.promiseSetTimeout(330);
+            await Utils.promiseSetTimeout(300);
             notExistCount = 0;
             clicksCount++;
+            console.log('click');
         } else {
             notExistCount++;
         }
-        if (notExistCount > 30 && clicksCount > 0) {
+        // console.log(`i = ${i}`);
+        // console.log(`notExistCount = ${notExistCount}`);
+        // console.log(`clicksCount = ${clicksCount}`);
+        if (notExistCount > 10 && clicksCount > 0) {
+            break;
+        }
+        if (notExistCount > 15 && notExistCount == i + 1) {
             break;
         }
     }
@@ -1409,9 +1427,16 @@ function moveActionListBlock() {
        
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
-            let diff = 77;
+            // old layout
+            let diff = 93;
+            // new layout
+            // let diff = 77;
+            
             if (CHECKBOX) {
-                diff = 92;
+                // old layout
+                diff = 108
+                // new layout
+                // diff = 92;
             }
             
             const indentPixels = (indent + 1) * 7;
