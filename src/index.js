@@ -4,6 +4,7 @@ import { getColorScheme } from './modules/theme.js';
 
 let EDITABLE           = false;
 let CHECKBOX           = false;
+let OLD_LAYOUT         = false;
 const TYPE_WORKFLOW    = 1;
 const TYPE_FOLDER      = 2;
 const TYPE_ROOT        = 3;
@@ -49,6 +50,7 @@ async function init() {
 
     console.log('Github-flexible init...');
     const actionList = getULWorkflows();
+    OLD_LAYOUT = oldLayoutCheck();
     
     actionList.classList.add('GHflexible-globals');
     actionList.setAttribute('data-ghflexible-root', 'true');
@@ -166,46 +168,50 @@ async function onSubmit(event) {
 }
 
 function getULWorkflows() {
-    // old layout
-    // let ulList = document.querySelectorAll('ul.ActionList.ActionList--subGroup');
+    if (OLD_LAYOUT) {
+        // old layout
+        let ulList = document.querySelectorAll('ul.ActionList.ActionList--subGroup');
 
-    // for (let i = 0; i < ulList.length; i++) {
-    //     const ul = ulList[i];
-    //     if (ul.children.length > 0) {
-    //         const itemId = ul.getAttribute('data-test-selector');
-    //         if (itemId == 'workflows-list') {
-    //             return ul;
-    //         }
-    //     }
-    // }
-
-    // new layout
-    let ulList = document.querySelectorAll('ul.ActionListWrap');
-    for (let i = 0; i < ulList.length; i++) {
-        const ul = ulList[i];
-        if (ul.children.length > 0) {
-            const role = ul.getAttribute('role');
-            const itemId = ul.children[0].getAttribute('data-item-id');
-            if (role == 'list' && itemId != 'caches') {
-                return ul;
+        for (let i = 0; i < ulList.length; i++) {
+            const ul = ulList[i];
+            if (ul.children.length > 0) {
+                const itemId = ul.getAttribute('data-test-selector');
+                if (itemId == 'workflows-list') {
+                    return ul;
+                }
+            }
+        }
+    } else {
+        // new layout
+        let ulList = document.querySelectorAll('ul.ActionListWrap');
+        for (let i = 0; i < ulList.length; i++) {
+            const ul = ulList[i];
+            if (ul.children.length > 0) {
+                const role = ul.getAttribute('role');
+                const itemId = ul.children[0].getAttribute('data-item-id');
+                if (role == 'list' && itemId != 'caches') {
+                    return ul;
+                }
             }
         }
     }
 }
 
 function getULAllWorkflows() {
-    // old layout 
-    // return document.querySelector('ul.ActionList');
+    if (OLD_LAYOUT) {
+        // old layout 
+        return document.querySelector('ul.ActionList');
+    } else {
+        // new layout
+        let ulList = document.querySelectorAll('ul.ActionListWrap');
 
-    // new layout
-    let ulList = document.querySelectorAll('ul.ActionListWrap');
-
-    for (let i = 0; i < ulList.length; i++) {
-        const ul = ulList[i];
-        if (ul.children.length > 0) {
-            const itemId = ul.children[0].getAttribute('data-item-id');
-            if (itemId == 'all_workflows') {
-                return ul;
+        for (let i = 0; i < ulList.length; i++) {
+            const ul = ulList[i];
+            if (ul.children.length > 0) {
+                const itemId = ul.children[0].getAttribute('data-item-id');
+                if (itemId == 'all_workflows') {
+                    return ul;
+                }
             }
         }
     }
@@ -249,18 +255,30 @@ function checkWasLaunched() {
     return flag;
 }
 
-function getShowWorkflows() {
-    // old layout
-    // const workflows = document.querySelectorAll('li.ActionList-item');
-    // for(const i of workflows) {
-    //     if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
-    //         return i;
-    //     }
-    // }
+function oldLayoutCheck() {
+    const workflows = document.querySelectorAll('li.ActionList-item');
+    for(const i of workflows) {
+        if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
+            return true;
+        }
+    }
+    return false;
+}
 
-    // new layout
-    const showWorkflows = document.querySelector('div.ActionListItem');
-    return showWorkflows;
+function getShowWorkflows() {
+    if (OLD_LAYOUT) {
+        // old layout
+        const workflows = document.querySelectorAll('li.ActionList-item');
+        for(const i of workflows) {
+            if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
+                return i;
+            }
+        }
+    } else {
+        // new layout
+        const showWorkflows = document.querySelector('div.ActionListItem');
+        return showWorkflows;
+    }
 }
 
 function existShowWorkflows() {
@@ -274,10 +292,13 @@ function existShowWorkflows() {
 function clickShowWorkflows() {
     if (existShowWorkflows()) {
         const showWorkflows = getShowWorkflows();
-        // old layout
-        // showWorkflows.click();
-        // new layout
-        showWorkflows.children[0].click();
+        if (OLD_LAYOUT) {
+            // old layout
+            showWorkflows.click(); 
+        } else {
+            // new layout
+            showWorkflows.children[0].click();
+        }
     }
 }
 
@@ -1443,16 +1464,23 @@ function moveActionListBlock() {
        
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
-            // old layout
-            // let diff = 93;
-            // new layout
-            let diff = 77;
-            
-            if (CHECKBOX) {
+            let diff;
+            if (OLD_LAYOUT) {
                 // old layout
-                // diff = 108
+                diff = 93;
+            } else {
                 // new layout
-                diff = 92;
+                diff = 77;
+            }
+
+            if (CHECKBOX) {
+                if (OLD_LAYOUT) {
+                    // old layout
+                    diff = 108;
+                } else {
+                    // new layout
+                    diff = 92;
+                }
             }
             
             const indentPixels = (indent + 1) * 7;
