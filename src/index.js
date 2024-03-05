@@ -166,13 +166,27 @@ async function onSubmit(event) {
 }
 
 function getULWorkflows() {
-    let ulList = document.querySelectorAll('ul.ActionList.ActionList--subGroup');
+    // old layout
+    // let ulList = document.querySelectorAll('ul.ActionList.ActionList--subGroup');
 
+    // for (let i = 0; i < ulList.length; i++) {
+    //     const ul = ulList[i];
+    //     if (ul.children.length > 0) {
+    //         const itemId = ul.getAttribute('data-test-selector');
+    //         if (itemId == 'workflows-list') {
+    //             return ul;
+    //         }
+    //     }
+    // }
+
+    // new layout
+    let ulList = document.querySelectorAll('ul.ActionListWrap');
     for (let i = 0; i < ulList.length; i++) {
         const ul = ulList[i];
         if (ul.children.length > 0) {
-            const itemId = ul.getAttribute('data-test-selector');
-            if (itemId == 'workflows-list') {
+            const role = ul.getAttribute('role');
+            const itemId = ul.children[0].getAttribute('data-item-id');
+            if (role == 'list' && itemId != 'caches') {
                 return ul;
             }
         }
@@ -181,20 +195,20 @@ function getULWorkflows() {
 
 function getULAllWorkflows() {
     // old layout 
-    return document.querySelector('ul.ActionList');
+    // return document.querySelector('ul.ActionList');
 
     // new layout
-    // let ulList = document.querySelectorAll('ul.ActionListWrap');
+    let ulList = document.querySelectorAll('ul.ActionListWrap');
 
-    // for (let i = 0; i < ulList.length; i++) {
-    //     const ul = ulList[i];
-    //     if (ul.children.length > 0) {
-    //         const itemId = ul.children[0].getAttribute('data-item-id');
-    //         if (itemId == 'all_workflows') {
-    //             return ul;
-    //         }
-    //     }
-    // }
+    for (let i = 0; i < ulList.length; i++) {
+        const ul = ulList[i];
+        if (ul.children.length > 0) {
+            const itemId = ul.children[0].getAttribute('data-item-id');
+            if (itemId == 'all_workflows') {
+                return ul;
+            }
+        }
+    }
 }
 
 
@@ -237,16 +251,16 @@ function checkWasLaunched() {
 
 function getShowWorkflows() {
     // old layout
-    const workflows = document.querySelectorAll('li.ActionList-item');
-    for(const i of workflows) {
-        if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
-            return i;
-        }
-    }
+    // const workflows = document.querySelectorAll('li.ActionList-item');
+    // for(const i of workflows) {
+    //     if (i.getAttribute('data-test-selector') == 'workflows-show-more') {
+    //         return i;
+    //     }
+    // }
 
     // new layout
-    // const showWorkflows = document.querySelector('li.ActionListItem');
-    // return showWorkflows;
+    const showWorkflows = document.querySelector('div.ActionListItem');
+    return showWorkflows;
 }
 
 function existShowWorkflows() {
@@ -260,7 +274,10 @@ function existShowWorkflows() {
 function clickShowWorkflows() {
     if (existShowWorkflows()) {
         const showWorkflows = getShowWorkflows();
-        showWorkflows.click();
+        // old layout
+        // showWorkflows.click();
+        // new layout
+        showWorkflows.children[0].click();
     }
 }
 
@@ -274,7 +291,6 @@ async function waitClickShowWorkflows() {
             await Utils.promiseSetTimeout(300);
             notExistCount = 0;
             clicksCount++;
-            console.log('click');
         } else {
             notExistCount++;
         }
@@ -1428,15 +1444,15 @@ function moveActionListBlock() {
         if (checkFolder(el)) {
             const width = el.children[1].getBoundingClientRect().width;
             // old layout
-            let diff = 93;
+            // let diff = 93;
             // new layout
-            // let diff = 77;
+            let diff = 77;
             
             if (CHECKBOX) {
                 // old layout
-                diff = 108
+                // diff = 108
                 // new layout
-                // diff = 92;
+                diff = 92;
             }
             
             const indentPixels = (indent + 1) * 7;
