@@ -1,5 +1,6 @@
 import Utils from './modules/utils.js';
 import Icons from './modules/icons.js';
+import Workflow from './modules/workflow.js';
 import { getColorScheme } from './modules/theme.js';
 
 let EDITABLE           = false;
@@ -82,6 +83,7 @@ async function init() {
     // синхронно ищем GROUP_BUILD_FORM - надо сделать до добавления кнопки группового билда
     await depthFirstSearchSync(actionList, async function(el) {
         if (checkWorkflow(el) && !GROUP_BUILD_FORM) {
+            const w = new Workflow(el);
             await getParams(el);
 
             // Когда нашли GROUP_BUILD_FORM добавляем глобальную кнопку
@@ -99,6 +101,7 @@ async function init() {
     // Асинхронно заполняем WORKFLOW_PARAMS, WORKFLOW_PARAMS_STATUS_LOADED 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
+            const w = new Workflow(el);
             // console.log(`### Run init getParams for workflow: ${workflowGetName(el)}`);
             getParams(el);
         }
@@ -134,7 +137,8 @@ async function onSubmit(event) {
         // Синхронно чекаем параметры для нужных workflows
         await depthFirstSearchSync(actionList, async function(el) {
             if (checkWorkflow(el)) {
-                const checkBox = el.children[3];
+                const w = new Workflow(el);
+                const checkBox = w.getCheckBox();
                 if (!WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] && !checkHideElement(el) && checkBox.checked) {
                     // console.log(`# Run Sync getParams for checked and unhide workflows: ${workflowGetName(el)}`)
                     await getParams(el, ref);
@@ -440,16 +444,19 @@ function reloadGroupBuildForm() {
 
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
-            checkBoxes.push(el.children[3]);
+            const w = new Workflow(el);
+            checkBoxes.push(w.getCheckBox());
         }
     });
 
     const formParams = generateGroupBuildForm(checkBoxes);
-    const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
-    if (div.children[1]) {
-        div.children[1].remove();
+    if (GROUP_BUILD_FORM) {
+        const div = GROUP_BUILD_FORM.querySelector('div.workflow-dispatch');
+        if (div.children[1]) {
+            div.children[1].remove();
+        }
+        div.appendChild(formParams);
     }
-    div.appendChild(formParams);
 }
 
 function disableEditElements() {
@@ -466,8 +473,8 @@ function disableEditElements() {
             el.children[1].onmousedown = el.saveFunc;
         }
         if (checkWorkflow(el)) {
-            el.children[2].setAttribute('hidden', '');
-
+            const w = new Workflow(el);
+            w.hideEditButton();
         }
     });
     saveState();
@@ -484,20 +491,22 @@ function enableEditElements() {
             let indents = countIndents(li);
             setIndents(li, indents);
 
-            if (checkFolder(el) || checkWorkflow(el)) {
+            if (checkFolder(el)) {
                 el.children[2].onmousedown = null;
                 el.children[2].removeAttribute('hidden');
                 el.children[2].onmousedown = function (event) {
                     renameButton(el.children[2], event);
                 }
             }
-            // if (checkWorkflow(el)) {
-            //     el.children[2].onmousedown = null;
-            //     el.children[2].removeAttribute('hidden');
-            //     el.children[2].onmousedown = function (event) {
-            //         renameButton(el.children[2], event);
-            //     }
-            // }
+            if (checkWorkflow(el)) {
+                const w = new Workflow(el);
+                w.unhideEditButton();
+                const editButton = w.getEditButton();
+                editButton.onmousedown = null;
+                editButton.onmousedown = function (event) {
+                    renameButton(el.children[2], event);
+                }
+            }
 
             li.onclick = function (event) {
                 return false;
@@ -849,14 +858,27 @@ function enableEditElements() {
 function hideEditIcons() {
     const actionList = getULWorkflows();
     depthFirstSearch(actionList, function(el) {
-        el.children[2].setAttribute('hidden', '');
+        if (checkFolder(el)) {
+            el.children[2].setAttribute('hidden', '');
+        }
+        if (checkWorkflow(el)) {
+            const w = new Workflow(el);
+            w.hideEditButton();
+        }
+       
     });
 }
 
 function unHideEditIcons() {
     const actionList = getULWorkflows();
     depthFirstSearch(actionList, function(el) {
-        el.children[2].removeAttribute('hidden');
+        if (checkFolder(el)) {
+            el.children[2].removeAttribute('hidden');
+        }
+        if (checkWorkflow(el)) {
+            const w = new Workflow(el);
+            w.unhideEditButton();
+        }
     });
 }
 
@@ -877,7 +899,8 @@ function deleteGroupBuild() {
     const checkBoxes = [];
     depthFirstSearch(actionList, function(el) {
         if (checkWorkflow(el)) {
-            const checkBox = el.children[3];
+            const w = new Workflow(el);
+            const checkBox = w.getCheckBox();
             checkBoxes.push(checkBox);
         }
     });
@@ -887,7 +910,9 @@ function deleteGroupBuild() {
         c.setAttribute('hidden', '');
     }
     moveActionListBlock();
-    GROUP_BUILD_FORM.remove();
+    if (GROUP_BUILD_FORM) {
+        GROUP_BUILD_FORM.remove();
+    }
     CHECKBOX = false;
 }
 
@@ -960,10 +985,12 @@ function globalButtonGroupBuild() {
             disableEditElements();
 
             const body = document.querySelector('body');
-            body.appendChild(GROUP_BUILD_FORM);
-            const located = document.querySelector('div.PageLayout-region.PageLayout-content').getBoundingClientRect();
-            GROUP_BUILD_FORM.style.top = located.top + window.scrollY + 'px';
-            GROUP_BUILD_FORM.style.left = located.left + window.scrollX + 'px';
+            if (GROUP_BUILD_FORM) {
+                body.appendChild(GROUP_BUILD_FORM);
+                const located = document.querySelector('div.PageLayout-region.PageLayout-content').getBoundingClientRect();
+                GROUP_BUILD_FORM.style.top = located.top + window.scrollY + 'px';
+                GROUP_BUILD_FORM.style.left = located.left + window.scrollX + 'px';
+            }
     
             depthFirstSearch(actionList, async function(el) {
                 if (checkWorkflow(el)) {
@@ -1113,7 +1140,8 @@ function globalButtonCreateFolder() {
 
 
 function updateCheckBox(el) {
-    const checkBox = el.children[3];
+    const w = new Workflow(el);
+    const checkBox = w.getCheckBox();
     checkBox.disabled = false;
     if (el.getAttribute('data-ghflexible-checkbox') === 'false') {
         checkBox.disabled = true;
@@ -1130,12 +1158,12 @@ async function hideCheckBoxes() {
 }
 
 function hideCheckBox(el) {
-    const checkBox = el.children[3];
+    const checkBox = el.children[4];
     checkBox.setAttribute('hidden', '');
 }
 
 function unhideCheckBox(el) {
-    const checkBox = el.children[3];
+    const checkBox = el.children[4];
     checkBox.removeAttribute('hidden');
 }
 
@@ -2093,7 +2121,8 @@ function uriWorkflows() {
 }
 
 async function getParams(el, ref = null) {
-    const checkBox = el.children[3];
+    const w = new Workflow(el);
+    const checkBox = w.getCheckBox();
     let params = {
         workflow: workflowFileName(el),
     };
@@ -2129,6 +2158,7 @@ async function getParams(el, ref = null) {
     });
     const form = new DOMParser().parseFromString(await r.text(), 'text/html');
     WORKFLOW_PARAMS_STATUS_LOADED[workflowGetName(el)] = true;
+
     
     // Проверяем есть ли workflow для ветки
     const span = form.querySelector('div.workflow-dispatch').querySelector('span.d-block');
@@ -2157,6 +2187,8 @@ async function getParams(el, ref = null) {
             const oldParam = paramFromParams(p, WORKFLOW_PARAMS[workflowGetName(el)].params);
             if (oldParam.param) {
                 WORKFLOW_PARAMS[workflowGetName(el)].params[oldParam.index].visible = true;
+            } else {
+                WORKFLOW_PARAMS[workflowGetName(el)].params.push(p);
             }
         }
     } else {
@@ -2184,6 +2216,7 @@ async function getParams(el, ref = null) {
     el.setAttribute('data-ghflexible-checkbox', 'true');
     checkBox.disabled = false;
     // GROUP_BUILD_FORM - записываем первую часть формы 
+    
     if (!GROUP_BUILD_FORM) {
         form.querySelectorAll('form').forEach((i)  => {
             const method = i.getAttribute('method');
